@@ -1,0 +1,82 @@
+/* Makor Intelligence Platform — Next.js global styles
+   Imports the design tokens, the component utility layer, and the Tailwind
+   layers. The order matters: tokens & component CSS are inlined before
+   Tailwind expands its directives so `@layer components` rules end up in the
+   right place in the cascade. */
+
+@import "../styles/tokens.css";
+@import "../styles/components.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    border-color: var(--border-default);
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+  html {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-body-size);
+    line-height: var(--text-body-line);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    color-scheme: dark;
+  }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    min-width: var(--layout-min-width);
+    overflow-x: auto;
+  }
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  a {
+    color: var(--text-accent);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--makor-200);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+  ::placeholder { color: var(--text-tertiary); opacity: 1; }
+  ::selection   { background: var(--makor-800); color: var(--text-primary); }
+  :focus { outline: none; }
+  :focus-visible {
+    outline: var(--border-width-focus) solid var(--border-focus);
+    outline-offset: 0;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border: 2px solid var(--surface-base);
+    border-radius: var(--radius-pill);
+  }
+  *::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+  *::-webkit-scrollbar-corner { background: transparent; }
+}

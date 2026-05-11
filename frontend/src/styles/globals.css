@@ -1,0 +1,130 @@
+/* =============================================================================
+   Makor Intelligence Platform — Global / Base Layer
+   -----------------------------------------------------------------------------
+   v0.2 — Refined for Makor Securities identity.
+
+   Imports tokens, sets the terminal baseline, configures fonts (sans, mono,
+   editorial serif), focus, custom scrollbars. Component utilities live in
+   components.css.
+   ============================================================================= */
+
+@import "./tokens.css";
+@import "./components.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--border-default);
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  html {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-body-size);
+    line-height: var(--text-body-line);
+    font-weight: var(--text-body-weight);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    min-width: var(--layout-min-width);
+    overflow-x: auto;
+  }
+
+  /* All numeric defaults read as terminal data. Use `.data` for individual
+     values; this rule covers <code>, <kbd>, <samp>. */
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  /* Editorial elements (used inside .editorial / .research-note containers). */
+  .editorial h1,
+  .editorial h2,
+  .research-note h1,
+  .research-note h2 {
+    font-family: var(--font-serif);
+  }
+
+  a {
+    color: var(--text-accent);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--makor-200);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
+  ::placeholder {
+    color: var(--text-tertiary);
+    opacity: 1;
+  }
+
+  ::selection {
+    background: var(--makor-800);
+    color: var(--text-primary);
+  }
+
+  :focus { outline: none; }
+  :focus-visible {
+    outline: var(--border-width-focus) solid var(--border-focus);
+    outline-offset: 0;
+  }
+
+  /* Scrollbars — thin, dark, terminal-grade. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border: 2px solid var(--surface-base);
+    border-radius: var(--radius-pill);
+  }
+  *::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+  *::-webkit-scrollbar-corner { background: transparent; }
+}

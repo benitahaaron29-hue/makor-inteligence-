@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1440" />
+  <title>Makor Intelligence — Briefing Archive</title>
+
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jetbrains-mono@2.304.0/css/jetbrains-mono.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../src/styles/tokens.css" />
+  <link rel="stylesheet" href="../src/styles/components.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-sans); font-size: 13px; line-height: 20px; min-width: 1280px; }
+    body { display: grid; grid-template-columns: var(--layout-sidebar-w) 1fr; }
+    main { display: flex; flex-direction: column; min-width: 0; }
+    .row { display: flex; align-items: center; gap: 8px; }
+    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .stack { display: flex; flex-direction: column; gap: 12px; }
+    .facet-bar { display: flex; flex-direction: column; gap: 10px; }
+    .facet-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: var(--text-body-sm-size); color: var(--text-secondary); }
+    .facet-row .count { color: var(--text-tertiary); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .facet-bar-chart { height: 4px; background: var(--surface-sunken); border-radius: var(--radius-xs); position: relative; overflow: hidden; }
+    .facet-bar-chart > div { position: absolute; inset: 0 auto 0 0; background: var(--makor-500); }
+    .pager { display: inline-flex; gap: 0; border: 1px solid var(--border-default); border-radius: var(--radius-sm); overflow: hidden; }
+    .pager button { background: var(--surface-raised); color: var(--text-secondary); border: 0; border-left: 1px solid var(--border-default); padding: 6px 12px; font-size: var(--text-body-sm-size); font-family: var(--font-mono); cursor: pointer; }
+    .pager button:first-child { border-left: 0; }
+    .pager button.is-active { background: var(--surface-active); color: var(--text-primary); }
+    .pager button:hover { background: var(--surface-hover); color: var(--text-primary); }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================ SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-row">
+        <span class="sidebar-brand-crest"></span>
+        <div>
+          <div class="sidebar-brand-name">MAKOR</div>
+          <div class="sidebar-brand-sub">Intelligence · FX</div>
+        </div>
+      </div>
+      <div class="sidebar-session">
+        <span class="sidebar-session-key">Desk</span>
+        <span class="sidebar-session-value">Macro &amp; FX</span>
+        <span class="sidebar-session-key">Session</span>
+        <span class="sidebar-session-value">LDN · 08:42 BST</span>
+        <span class="sidebar-session-key">Regime</span>
+        <span class="sidebar-session-value" style="color: var(--bid);">Risk-On · stable</span>
+      </div>
+    </div>
+
+    <div class="sidebar-scroll">
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Desk</div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Morning Briefing</span><span class="sidebar-item-badge">11</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Live Markets</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Economic Calendar</span></div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Analytics</div>
+        <div class="sidebar-item"><span class="sidebar-item-label">FX Regime</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Volatility Surface</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Macro Themes</span></div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Research</div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Strategist Notes</span></div>
+        <div class="sidebar-item is-active"><span class="sidebar-item-label">Briefing Archive</span><span class="sidebar-item-badge">312</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Special Reports</span></div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-row">
+        <span><span class="live-dot"></span>&nbsp;&nbsp;LIVE FEED</span>
+        <span>08:42:11</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================================================ MAIN -->
+  <main>
+
+    <!-- COMMAND BAR -->
+    <div class="command-bar">
+      <div class="command-bar-left">
+        <div class="breadcrumb">
+          <a href="#">Research</a>
+          <span class="sep">/</span>
+          <span class="current">Briefing Archive</span>
+        </div>
+        <span class="divider-v" style="height: 18px;"></span>
+        <span class="caption">312 records · 2024-01-02 → 2026-05-10</span>
+      </div>
+
+      <div class="command-bar-center">
+        <div class="command-search">
+          <span class="command-search-icon">⌕</span>
+          <span class="command-search-text">Search archive by date, theme, tag, ticker…</span>
+          <span class="command-search-hint"><span class="kbd">⌘</span><span class="kbd">K</span></span>
+        </div>
+      </div>
+
+      <div class="command-bar-right">
+        <button class="btn">Export · CSV</button>
+        <button class="btn">Export · PDF</button>
+        <button class="btn btn-primary">+ New Briefing</button>
+      </div>
+    </div>
+
+    <!-- ============================================================ WORKSPACE -->
+    <div class="workspace">
+
+      <!-- Filter bar — col-12 -->
+      <div class="col-span-12">
+        <div class="filter-bar">
+          <span class="filter-bar-label">Filters</span>
+          <span class="filter-bar-sep"></span>
+
+          <div class="row" style="gap: 6px;">
+            <span class="caption">Date</span>
+            <div class="input-with-affix" style="width: 220px;">
+              <input value="2026-01-01 → 2026-05-11" />
+              <span class="kbd">D</span>
+            </div>
+          </div>
+
+          <span class="filter-bar-sep"></span>
+
+          <div class="row" style="gap: 6px;">
+            <span class="caption">Type</span>
+            <div class="segmented">
+              <button class="segmented-item is-active">All</button>
+              <button class="segmented-item">Morning</button>
+              <button class="segmented-item">Midday</button>
+              <button class="segmented-item">Weekly</button>
+              <button class="segmented-item">Special</button>
+            </div>
+          </div>
+
+          <span class="filter-bar-sep"></span>
+
+          <div class="row" style="gap: 6px;">
+            <span class="caption">Status</span>
+            <div class="segmented">
+              <button class="segmented-item is-active">All</button>
+              <button class="segmented-item">Published</button>
+              <button class="segmented-item">Draft</button>
+              <button class="segmented-item">Archived</button>
+            </div>
+          </div>
+
+          <span class="filter-bar-sep"></span>
+
+          <div class="row" style="gap: 6px;">
+            <span class="caption">Regime</span>
+            <div class="segmented">
+              <button class="segmented-item is-active">Any</button>
+              <button class="segmented-item">Risk-On</button>
+              <button class="segmented-item">Risk-Off</button>
+              <button class="segmented-item">Mixed</button>
+            </div>
+          </div>
+
+          <span style="margin-left: auto;"></span>
+          <button class="btn btn-ghost btn-sm">Reset</button>
+          <button class="btn btn-sm">Save view</button>
+        </div>
+      </div>
+
+      <!-- Archive table — col-9 -->
+      <div class="col-span-9 panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="eyebrow">Archive</span>
+            <span class="heading-4">All Briefings · 92 of 312</span>
+          </div>
+          <div class="panel-header-actions">
+            <div class="segmented">
+              <button class="segmented-item is-active">Table</button>
+              <button class="segmented-item">Cards</button>
+              <button class="segmented-item">Calendar</button>
+            </div>
+            <span class="caption">Sort: Date ↓</span>
+          </div>
+        </div>
+        <div class="panel-flush">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Headline</th>
+                <th>Type</th>
+                <th class="col-center">Risk</th>
+                <th class="col-center">Status</th>
+                <th>Author</th>
+                <th class="col-num">DXY Δ</th>
+                <th class="col-num">UST 10Y Δ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="col-num">2026-05-11</td><td>Dollar firm, front-end USTs bid into US CPI</td><td>Morning</td><td class="col-center"><span class="status-pill risk-on">On</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-pos">+0.18%</td><td class="col-num data-neg">−4.2 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-05-10</td><td>Risk wobble on China property concerns; JPY bid</td><td>Weekly</td><td class="col-center"><span class="status-pill risk-off">Off</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-neg">−0.21%</td><td class="col-num data-neg">−2.8 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-05-09</td><td>FOMC minutes pass without fireworks; carry resumes</td><td>Morning</td><td class="col-center"><span class="status-pill risk-on">On</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-pos">+0.32%</td><td class="col-num data-pos">+1.4 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-05-08</td><td>BoE on hold; sterling underperforms peers</td><td>Morning</td><td class="col-center"><span class="status-pill risk-mixed">Mixed</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-pos">+0.09%</td><td class="col-num data-neg">−1.1 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-05-07</td><td>NFP +218k, wages +0.3%; curve bear-steepens</td><td>Special</td><td class="col-center"><span class="status-pill risk-off">Off</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-pos">+0.48%</td><td class="col-num data-pos">+8.4 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-05-06</td><td>Eurozone services PMI surprises; EUR catches a bid</td><td>Morning</td><td class="col-center"><span class="status-pill risk-on">On</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-neg">−0.14%</td><td class="col-num data-neg">−0.6 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-05-05</td><td>Quiet open; oil holds gains, China PMIs in focus</td><td>Morning</td><td class="col-center"><span class="status-pill risk-neutral">Neu</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-neu">±0.00%</td><td class="col-num data-neu">±0.0 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-05-02</td><td>ECB doves: Lane signals patience, periphery rallies</td><td>Morning</td><td class="col-center"><span class="status-pill risk-on">On</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-neg">−0.22%</td><td class="col-num data-neg">−2.0 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-05-01</td><td>May Day; markets quiet, US ISM in focus</td><td>Morning</td><td class="col-center"><span class="status-pill risk-neutral">Neu</span></td><td class="col-center"><span class="status-pill status-pill-archived">Arc</span></td><td>A. Benitah</td><td class="col-num data-pos">+0.04%</td><td class="col-num data-pos">+0.3 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-04-30</td><td>End-of-month USD demand fades; AUD outperforms</td><td>Morning</td><td class="col-center"><span class="status-pill risk-on">On</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-neg">−0.31%</td><td class="col-num data-pos">+1.8 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-04-29</td><td>BoJ patience confirmed; JPY weakens to 158</td><td>Special</td><td class="col-center"><span class="status-pill risk-off">Off</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-pos">+0.54%</td><td class="col-num data-pos">+3.1 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-04-28</td><td>Soft US PCE preview; USD heavy across G10</td><td>Morning</td><td class="col-center"><span class="status-pill risk-on">On</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-neg">−0.42%</td><td class="col-num data-neg">−3.8 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+              <tr><td class="col-num">2026-04-25</td><td>Big tech earnings drive a risk grab; USD/JPY 156</td><td>Morning</td><td class="col-center"><span class="status-pill risk-on">On</span></td><td class="col-center"><span class="status-pill status-pill-published">Pub</span></td><td>A. Benitah</td><td class="col-num data-pos">+0.17%</td><td class="col-num data-pos">+2.4 bp</td><td><a class="caption" href="#">Open ↗</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel-footer">
+          <span>Showing 1–13 of 312</span>
+          <div class="pager">
+            <button>‹</button>
+            <button class="is-active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>…</button>
+            <button>24</button>
+            <button>›</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Facets / Aggregates — col-3 -->
+      <div class="col-span-3 stack" style="display: flex; flex-direction: column; gap: 16px;">
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-header-title">
+              <span class="eyebrow">Regime Mix</span>
+              <span class="heading-4">Last 90 Days</span>
+            </div>
+          </div>
+          <div class="panel-body panel-body-prem">
+            <div class="facet-bar">
+              <div class="facet-row"><span><span class="status-pill risk-on" style="margin-right: 6px;">On</span>Risk-On</span><span class="count">48</span></div>
+              <div class="facet-bar-chart"><div style="right: 47%; background: var(--bid);"></div></div>
+              <div class="facet-row"><span><span class="status-pill risk-off" style="margin-right: 6px;">Off</span>Risk-Off</span><span class="count">22</span></div>
+              <div class="facet-bar-chart"><div style="right: 76%; background: var(--offer);"></div></div>
+              <div class="facet-row"><span><span class="status-pill risk-mixed" style="margin-right: 6px;">Mxd</span>Mixed</span><span class="count">15</span></div>
+              <div class="facet-bar-chart"><div style="right: 83%; background: var(--warning);"></div></div>
+              <div class="facet-row"><span><span class="status-pill risk-neutral" style="margin-right: 6px;">Neu</span>Neutral</span><span class="count">7</span></div>
+              <div class="facet-bar-chart"><div style="right: 92%; background: var(--neutral);"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-header-title">
+              <span class="eyebrow">Tags · Top Themes</span>
+              <span class="heading-4">Frequency</span>
+            </div>
+          </div>
+          <div class="panel-body panel-body-prem">
+            <div class="facet-bar">
+              <div class="facet-row"><span class="body-sm">Fed reaction function</span><span class="count">38</span></div>
+              <div class="facet-row"><span class="body-sm">China growth pulse</span><span class="count">29</span></div>
+              <div class="facet-row"><span class="body-sm">USD funding stress</span><span class="count">24</span></div>
+              <div class="facet-row"><span class="body-sm">Oil supply premium</span><span class="count">21</span></div>
+              <div class="facet-row"><span class="body-sm">BoJ normalisation</span><span class="count">19</span></div>
+              <div class="facet-row"><span class="body-sm">EM carry conditions</span><span class="count">16</span></div>
+              <div class="facet-row"><span class="body-sm">Eurozone PMIs</span><span class="count">14</span></div>
+              <div class="facet-row"><span class="body-sm">Front-end real yields</span><span class="count">12</span></div>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <span>Top 8 of 42 tags</span>
+            <a class="nav-link" href="#">See all →</a>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-header-title">
+              <span class="eyebrow">Briefing Output</span>
+              <span class="heading-4">Weekly Cadence</span>
+            </div>
+          </div>
+          <div class="panel-body panel-body-prem">
+            <div class="data-lg" style="line-height: 1; margin-bottom: 6px;">5.0 / wk</div>
+            <div class="caption">12-week median · target 5/wk</div>
+            <div class="divider-h"></div>
+            <table class="data-table data-table-compact" style="border: none; font-size: 11px;">
+              <tbody>
+                <tr><td class="caption">Last 4w</td><td class="col-num data-pos">20</td></tr>
+                <tr><td class="caption">Last 12w</td><td class="col-num">61</td></tr>
+                <tr><td class="caption">YTD</td><td class="col-num">92</td></tr>
+                <tr><td class="caption">All time</td><td class="col-num">312</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- STATUS TICKER -->
+    <div class="status-ticker">
+      <span><span class="live-dot"></span>&nbsp;&nbsp;LIVE</span>
+      <span class="divider-v"></span>
+      <span>SPX <span class="data-pos">5,231.40 ▲ +0.18%</span></span>
+      <span>NDX <span class="data-pos">18,402.66 ▲ +0.32%</span></span>
+      <span>SX5E <span class="data-neg">5,019.10 ▼ −0.06%</span></span>
+      <span>BRENT <span class="data-pos">84.21 ▲ +0.42%</span></span>
+      <span>UST 10Y <span class="data-neg">4.182 ▼ −4.2 bp</span></span>
+      <span>DXY <span class="data-pos">104.81 ▲ +0.18%</span></span>
+      <span class="divider-v"></span>
+      <span>Session: London · 08:42:11 BST</span>
+    </div>
+
+  </main>
+</body>
+</html>

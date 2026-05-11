@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1440" />
+  <title>Makor Intelligence — Morning Briefing · 11 May 2026</title>
+
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jetbrains-mono@2.304.0/css/jetbrains-mono.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../src/styles/tokens.css" />
+  <link rel="stylesheet" href="../src/styles/components.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-sans); font-size: 13px; line-height: 20px; min-width: 1280px; }
+    body { display: grid; grid-template-columns: var(--layout-sidebar-w) 1fr; }
+    main { display: flex; flex-direction: column; min-width: 0; }
+    .row { display: flex; align-items: center; gap: 8px; }
+    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+    /* Editorial sections inside the reading panel */
+    .section + .section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-subtle); }
+    .section-header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+    .section-rule { flex: 1 1 auto; height: 1px; background: var(--border-subtle); }
+
+    /* Drop cap for first paragraph in executive summary */
+    .first-graf::first-letter {
+      font-family: var(--font-serif);
+      font-weight: 600;
+      font-size: 48px;
+      line-height: 0.85;
+      float: left;
+      margin: 4px 8px 0 0;
+      color: var(--text-primary);
+    }
+
+    .embed-table { margin: 16px 0; }
+    .pull-stat { display: flex; align-items: baseline; gap: 12px; padding: 12px 16px; background: var(--surface-inset); border-left: 2px solid var(--makor-400); margin: 16px 0; }
+    .pull-stat-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 500; color: var(--text-data); }
+    .pull-stat-label { color: var(--text-secondary); font-size: var(--text-body-sm-size); }
+
+    .related-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
+    .related-row:last-child { border-bottom: 0; }
+    .related-title { color: var(--text-primary); font-size: var(--text-body-sm-size); }
+    .related-meta { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================ SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-row">
+        <span class="sidebar-brand-crest"></span>
+        <div>
+          <div class="sidebar-brand-name">MAKOR</div>
+          <div class="sidebar-brand-sub">Intelligence · FX</div>
+        </div>
+      </div>
+      <div class="sidebar-session">
+        <span class="sidebar-session-key">Desk</span>
+        <span class="sidebar-session-value">Macro &amp; FX</span>
+        <span class="sidebar-session-key">Session</span>
+        <span class="sidebar-session-value">LDN · 08:42 BST</span>
+        <span class="sidebar-session-key">Regime</span>
+        <span class="sidebar-session-value" style="color: var(--bid);">Risk-On · stable</span>
+      </div>
+    </div>
+
+    <div class="sidebar-scroll">
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Desk</div>
+        <div class="sidebar-item is-active"><span class="sidebar-item-label">Morning Briefing</span><span class="sidebar-item-badge">11</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Live Markets</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Economic Calendar</span></div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Analytics</div>
+        <div class="sidebar-item"><span class="sidebar-item-label">FX Regime</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Volatility Surface</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Macro Themes</span></div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Research</div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Strategist Notes</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Briefing Archive</span><span class="sidebar-item-badge">312</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Special Reports</span></div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-row">
+        <span><span class="live-dot"></span>&nbsp;&nbsp;LIVE FEED</span>
+        <span>08:42:11</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================================================ MAIN -->
+  <main>
+
+    <!-- COMMAND BAR -->
+    <div class="command-bar">
+      <div class="command-bar-left">
+        <div class="breadcrumb">
+          <a href="#">Desk</a><span class="sep">/</span>
+          <a href="#">Morning Briefing</a><span class="sep">/</span>
+          <span class="current">11 May 2026</span>
+        </div>
+      </div>
+
+      <div class="command-bar-center">
+        <div class="command-search">
+          <span class="command-search-icon">⌕</span>
+          <span class="command-search-text">Search this briefing or jump to a section…</span>
+          <span class="command-search-hint"><span class="kbd">⌘</span><span class="kbd">K</span></span>
+        </div>
+      </div>
+
+      <div class="command-bar-right">
+        <button class="btn"><span class="kbd">←</span>&nbsp;Prev</button>
+        <button class="btn">Next&nbsp;<span class="kbd">→</span></button>
+        <span class="divider-v" style="height: 18px;"></span>
+        <button class="btn">Print</button>
+        <button class="btn">Email desk</button>
+        <button class="btn btn-primary">Publish · ⌘P</button>
+      </div>
+    </div>
+
+    <!-- ============================================================ WORKSPACE -->
+    <div class="workspace">
+
+      <!-- ====== READING COLUMN (col-8) ====== -->
+      <article class="col-span-8 panel panel-research panel-highlight">
+        <div class="panel-body panel-body-edit">
+
+          <!-- MASTHEAD -->
+          <div class="masthead-rule" style="margin-bottom: 20px;"></div>
+          <div class="row-between" style="margin-bottom: 12px;">
+            <span class="eyebrow">Morning FX &amp; Macro · Daily Briefing</span>
+            <div class="row" style="gap: 6px;">
+              <span class="status-pill status-pill-published">Published</span>
+              <span class="status-pill risk-on">Risk-On</span>
+            </div>
+          </div>
+
+          <!-- HEADLINE -->
+          <h1 class="editorial-display research-column">
+            Dollar firm, front-end USTs bid into US CPI as desks de-risk into the print.
+          </h1>
+
+          <!-- DEK -->
+          <p class="editorial-dek research-column" style="margin-top: 16px;">
+            Overnight price action leaned risk-on, with the dollar bid against the
+            funders and the belly of the UST curve receiving real-money flow ahead of
+            a 3.1 % forecast. The desk maintains a tactical bias to fade USD strength
+            on confirmation of disinflation.
+          </p>
+
+          <!-- META -->
+          <div class="editorial-meta" style="margin-top: 20px;">
+            <span>By A. Benitah · Macro &amp; FX Strategy</span>
+            <span>Published 06:30 GMT · 11 May 2026</span>
+            <span>~ 4 min read</span>
+            <span><span class="live-dot" style="background: var(--bid);"></span>&nbsp;<span style="color: var(--bid);">Live</span></span>
+          </div>
+
+          <div class="divider-h divider-strong" style="margin: 24px 0;"></div>
+
+          <!-- EXECUTIVE SUMMARY -->
+          <section class="section" id="summary" style="margin-top: 0;">
+            <div class="section-header">
+              <span class="eyebrow eyebrow-accent">§ 01</span>
+              <h2 class="heading-3">Executive Summary</h2>
+              <span class="section-rule"></span>
+            </div>
+            <div class="editorial-body research-column">
+              <p class="first-graf">
+                Good morning. Overnight price action heading into the 11 May session
+                leaned risk-on. The dollar is firm against the funders, real-money is
+                receiving the belly of the UST curve, and equity vol is offered. The
+                key event is the US CPI print at 12:30 GMT, forecast at 3.1 % YoY (vs
+                3.2 % prior) with core MoM forecast at +0.3 %.
+              </p>
+              <p>
+                We maintain a tactical bias to fade USD strength on confirmation of
+                disinflation, while watching credit and front-end vol for early
+                dislocation signals. Positioning is moderately long USD into the
+                print; a soft surprise would force unwind into thin liquidity.
+              </p>
+            </div>
+          </section>
+
+          <!-- FX -->
+          <section class="section" id="fx">
+            <div class="section-header">
+              <span class="eyebrow eyebrow-accent">§ 02 · FX</span>
+              <h2 class="heading-3">G10 &amp; Crosses</h2>
+              <span class="section-rule"></span>
+            </div>
+            <div class="editorial-body research-column">
+              <p>
+                <strong style="color: var(--text-primary);">EUR/USD</strong> held a
+                tight 30-pip range overnight, with leveraged accounts paring shorts
+                ahead of US CPI. <strong style="color: var(--text-primary);">GBP/USD</strong>
+                remains pinned by sticky services inflation and an unconvincing BoE
+                dovish pivot — 1.27 resistance still intact.
+                <strong style="color: var(--text-primary);">USD/JPY</strong> drifted
+                lower as the front-end of UST richens; intervention risk increases
+                above 152.50.
+              </p>
+              <p>
+                <strong style="color: var(--text-primary);">AUD/USD</strong> continues
+                to trade as a China proxy; copper strength supportive but iron-ore
+                weakness caps upside. The desk likes selling USDCHF rallies into
+                0.9050.
+              </p>
+            </div>
+
+            <!-- Embedded data: FX snapshot -->
+            <div class="embed-table panel panel-flush" style="border-color: var(--border-subtle); background: transparent;">
+              <table class="data-table data-table-compact">
+                <thead>
+                  <tr>
+                    <th>Pair</th>
+                    <th class="col-num">Last</th>
+                    <th class="col-num">Δ</th>
+                    <th class="col-num">Δ%</th>
+                    <th class="col-num">Day H</th>
+                    <th class="col-num">Day L</th>
+                    <th>1W Trend</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>EUR/USD</td><td class="col-num">1.0842</td><td class="col-num data-pos">+0.0023</td><td class="col-num data-pos">+0.21%</td><td class="col-num">1.0851</td><td class="col-num">1.0814</td><td><span class="sparkline"><svg width="72" height="16"><polyline points="0,12 9,11 18,11 27,9 36,10 45,8 54,6 63,5 72,4" stroke="var(--bid)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+                  <tr><td>GBP/USD</td><td class="col-num">1.2734</td><td class="col-num data-neg">−0.0011</td><td class="col-num data-neg">−0.08%</td><td class="col-num">1.2761</td><td class="col-num">1.2728</td><td><span class="sparkline" style="color: var(--offer);"><svg width="72" height="16"><polyline points="0,5 9,6 18,7 27,8 36,9 45,10 54,11 63,12 72,13" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+                  <tr><td>USD/JPY</td><td class="col-num">154.21</td><td class="col-num data-neg">−0.18</td><td class="col-num data-neg">−0.12%</td><td class="col-num">154.61</td><td class="col-num">154.05</td><td><span class="sparkline" style="color: var(--offer);"><svg width="72" height="16"><polyline points="0,4 9,5 18,6 27,7 36,8 45,9 54,10 63,11 72,12" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+                  <tr><td>USD/CHF</td><td class="col-num">0.9047</td><td class="col-num data-pos">+0.0008</td><td class="col-num data-pos">+0.09%</td><td class="col-num">0.9058</td><td class="col-num">0.9032</td><td><span class="sparkline"><svg width="72" height="16"><polyline points="0,12 9,11 18,11 27,9 36,10 45,8 54,8 63,7 72,7" stroke="var(--bid)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- PULL STAT -->
+          <div class="pull-stat">
+            <span class="pull-stat-value" style="color: var(--bid);">+0.18%</span>
+            <span class="pull-stat-label">DXY overnight · steady through Asia, firmer into London. Implied vol on 1M ATM closed at 6.42, ~0.2 vol below the 5-day average.</span>
+          </div>
+
+          <!-- RATES -->
+          <section class="section" id="rates">
+            <div class="section-header">
+              <span class="eyebrow eyebrow-accent">§ 03 · Rates</span>
+              <h2 class="heading-3">USTs &amp; G7 Curves</h2>
+              <span class="section-rule"></span>
+            </div>
+            <div class="editorial-body research-column">
+              <p>
+                Front-end USTs rallied 4bp on dovish Fed-speak; 2s/10s steepening
+                resumed with real-money receivers in the belly. Bunds tracked USTs but
+                underperformed at the long end on supply concession.
+              </p>
+              <p>
+                JGB 10y stalled near 0.95 % — BoJ presence keeps the curve pinned.
+                Gilts continued to lag with GBP rates pricing a shallower BoE easing
+                cycle than peers. Watch 2y UST auction tail today as a positioning
+                gauge.
+              </p>
+            </div>
+          </section>
+
+          <!-- EQUITIES -->
+          <section class="section" id="equities">
+            <div class="section-header">
+              <span class="eyebrow eyebrow-accent">§ 04 · Equities</span>
+              <h2 class="heading-3">Index &amp; Single-Stock Dynamics</h2>
+              <span class="section-rule"></span>
+            </div>
+            <div class="editorial-body research-column">
+              <p>
+                S&amp;P futures flat overnight after a marginal new high in the cash
+                session. Semis led on AI capex commentary; defensives lagged. Europe
+                opens mixed with luxury under pressure on China demand concerns.
+                Nikkei firmer on a softer JPY but breadth narrow.
+              </p>
+              <p>
+                Earnings dispersion remains the dominant single-stock driver —
+                index-level vol compressed, single-name vol elevated.
+              </p>
+            </div>
+          </section>
+
+          <!-- COMMODITIES -->
+          <section class="section" id="commodities">
+            <div class="section-header">
+              <span class="eyebrow eyebrow-accent">§ 05 · Commodities</span>
+              <h2 class="heading-3">Energy, Metals, Bulks</h2>
+              <span class="section-rule"></span>
+            </div>
+            <div class="editorial-body research-column">
+              <p>
+                Brent traded a $1 range as geopolitical risk premium leaked out of the
+                curve; spec longs trimmed but structural backwardation intact. Gold
+                consolidated near $2,330 with real yields the swing factor into CPI.
+              </p>
+              <p>
+                Copper firm on tightening concentrate market; LME stocks at multi-year
+                lows. Nat gas remains a regional story with European storage adequate
+                heading into shoulder season.
+              </p>
+            </div>
+          </section>
+
+          <!-- KEY EVENTS -->
+          <section class="section" id="events">
+            <div class="section-header">
+              <span class="eyebrow eyebrow-accent">§ 06 · Calendar</span>
+              <h2 class="heading-3">Key Events Today</h2>
+              <span class="section-rule"></span>
+            </div>
+            <div class="embed-table panel panel-flush" style="border-color: var(--border-subtle); background: transparent;">
+              <table class="data-table data-table-compact">
+                <thead>
+                  <tr><th>Time</th><th>Region</th><th>Event</th><th class="col-center">Imp.</th><th class="col-num">Forecast</th><th class="col-num">Prev.</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="col-num">08:00</td><td>DE</td><td>ZEW Economic Sentiment</td><td class="col-center"><span class="status-pill">Med</span></td><td class="col-num">12.5</td><td class="col-num">10.7</td></tr>
+                  <tr><td class="col-num">12:30</td><td>US</td><td>US CPI YoY</td><td class="col-center"><span class="status-pill status-pill-alert">High</span></td><td class="col-num">3.1%</td><td class="col-num">3.2%</td></tr>
+                  <tr><td class="col-num">14:00</td><td>US</td><td>FOMC member panel</td><td class="col-center"><span class="status-pill">Med</span></td><td class="col-num">—</td><td class="col-num">—</td></tr>
+                  <tr><td class="col-num">23:50</td><td>JP</td><td>Machinery Orders MoM</td><td class="col-center"><span class="status-pill status-pill-archived">Low</span></td><td class="col-num">+0.8%</td><td class="col-num">−1.5%</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- RISK THEMES -->
+          <section class="section" id="themes">
+            <div class="section-header">
+              <span class="eyebrow eyebrow-accent">§ 07 · Themes</span>
+              <h2 class="heading-3">Watchlist</h2>
+              <span class="section-rule"></span>
+            </div>
+            <div class="row" style="flex-wrap: wrap; gap: 8px;">
+              <span class="ticker-chip ticker-chip-neu">Fed reaction function</span>
+              <span class="ticker-chip ticker-chip-neu">China growth pulse</span>
+              <span class="ticker-chip ticker-chip-neu">USD funding stress</span>
+              <span class="ticker-chip ticker-chip-neu">Oil supply premium</span>
+              <span class="ticker-chip ticker-chip-neu">EM carry conditions</span>
+              <span class="ticker-chip ticker-chip-neu">Eurozone fiscal pulse</span>
+              <span class="ticker-chip ticker-chip-neu">BoJ normalisation</span>
+            </div>
+          </section>
+
+          <!-- FOOTNOTE -->
+          <div class="divider-h divider-strong" style="margin: 28px 0 12px;"></div>
+          <div class="editorial-meta">
+            <span>Briefing ID · 14ad675c-fc9e-4a4e-94f2-803444b0dfbc</span>
+            <span>Generator mock-v1 · Makor-MR-v3 regime model</span>
+            <span>Distribution: Makor Macro &amp; FX Desk</span>
+          </div>
+
+        </div>
+      </article>
+
+      <!-- ====== RIGHT RAIL (col-4) ====== -->
+      <aside class="col-span-4" style="display: flex; flex-direction: column; gap: 16px;">
+
+        <!-- Jump-to nav (TOC) -->
+        <div class="panel" style="position: sticky; top: calc(var(--layout-header-h) + 16px);">
+          <div class="panel-header">
+            <div class="panel-header-title">
+              <span class="eyebrow">In This Briefing</span>
+              <span class="heading-4">Sections</span>
+            </div>
+          </div>
+          <div class="toc" style="padding: 8px 0 12px;">
+            <div class="toc-item is-active"><span class="caption" style="width: 32px;">§ 01</span><span>Executive Summary</span></div>
+            <div class="toc-item"><span class="caption" style="width: 32px;">§ 02</span><span>FX · G10 &amp; Crosses</span></div>
+            <div class="toc-item"><span class="caption" style="width: 32px;">§ 03</span><span>Rates · USTs &amp; G7</span></div>
+            <div class="toc-item"><span class="caption" style="width: 32px;">§ 04</span><span>Equities</span></div>
+            <div class="toc-item"><span class="caption" style="width: 32px;">§ 05</span><span>Commodities</span></div>
+            <div class="toc-item"><span class="caption" style="width: 32px;">§ 06</span><span>Key Events</span></div>
+            <div class="toc-item"><span class="caption" style="width: 32px;">§ 07</span><span>Watchlist · Themes</span></div>
+          </div>
+        </div>
+
+        <!-- Market snapshot -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-header-title">
+              <span class="eyebrow">As of 08:42 BST</span>
+              <span class="heading-4">Market Snapshot</span>
+            </div>
+          </div>
+          <div class="panel-body panel-body-prem" style="display: flex; flex-direction: column; gap: 4px;">
+            <div class="row-between"><span class="body-sm">DXY</span><span><span class="data">104.81</span> <span class="ticker-chip ticker-chip-pos">▲ +0.18%</span></span></div>
+            <div class="row-between"><span class="body-sm">UST 10Y</span><span><span class="data">4.182</span> <span class="ticker-chip ticker-chip-neg">▼ −4.2 bp</span></span></div>
+            <div class="row-between"><span class="body-sm">BUND 10Y</span><span><span class="data">2.467</span> <span class="ticker-chip ticker-chip-neg">▼ −2.1 bp</span></span></div>
+            <div class="row-between"><span class="body-sm">SPX</span><span><span class="data">5,231.40</span> <span class="ticker-chip ticker-chip-pos">▲ +0.18%</span></span></div>
+            <div class="row-between"><span class="body-sm">NKY</span><span><span class="data">39,228.50</span> <span class="ticker-chip ticker-chip-pos">▲ +0.41%</span></span></div>
+            <div class="row-between"><span class="body-sm">BRENT</span><span><span class="data">84.21</span> <span class="ticker-chip ticker-chip-pos">▲ +0.42%</span></span></div>
+            <div class="row-between"><span class="body-sm">GOLD</span><span><span class="data">2,328.55</span> <span class="ticker-chip ticker-chip-neg">▼ −0.08%</span></span></div>
+            <div class="row-between"><span class="body-sm">VIX</span><span><span class="data">14.21</span> <span class="ticker-chip ticker-chip-neg">▼ −0.32</span></span></div>
+          </div>
+          <div class="panel-footer">
+            <span>BBG composite</span>
+            <a class="nav-link" href="#">Full board →</a>
+          </div>
+        </div>
+
+        <!-- Related briefings -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-header-title">
+              <span class="eyebrow">Archive</span>
+              <span class="heading-4">Previous Briefings</span>
+            </div>
+          </div>
+          <div class="panel-body panel-body-prem" style="padding-top: 4px; padding-bottom: 4px;">
+            <div class="related-row">
+              <div>
+                <div class="related-title">Risk wobble on China property concerns; JPY bid</div>
+                <div class="related-meta">2026-05-10 · Weekly · <span style="color: var(--offer);">Risk-Off</span></div>
+              </div>
+              <a class="caption" href="#">↗</a>
+            </div>
+            <div class="related-row">
+              <div>
+                <div class="related-title">FOMC minutes pass without fireworks; carry resumes</div>
+                <div class="related-meta">2026-05-09 · Morning · <span style="color: var(--bid);">Risk-On</span></div>
+              </div>
+              <a class="caption" href="#">↗</a>
+            </div>
+            <div class="related-row">
+              <div>
+                <div class="related-title">BoE on hold; sterling underperforms peers</div>
+                <div class="related-meta">2026-05-08 · Morning · <span style="color: var(--warning);">Mixed</span></div>
+              </div>
+              <a class="caption" href="#">↗</a>
+            </div>
+            <div class="related-row">
+              <div>
+                <div class="related-title">NFP +218k, wages +0.3%; curve bear-steepens</div>
+                <div class="related-meta">2026-05-07 · Special · <span style="color: var(--offer);">Risk-Off</span></div>
+              </div>
+              <a class="caption" href="#">↗</a>
+            </div>
+            <div class="related-row">
+              <div>
+                <div class="related-title">Eurozone services PMI surprises; EUR bid</div>
+                <div class="related-meta">2026-05-06 · Morning · <span style="color: var(--bid);">Risk-On</span></div>
+              </div>
+              <a class="caption" href="#">↗</a>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <a class="nav-link" href="archive.html">Open archive →</a>
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+
+    <!-- STATUS TICKER -->
+    <div class="status-ticker">
+      <span><span class="live-dot"></span>&nbsp;&nbsp;LIVE</span>
+      <span class="divider-v"></span>
+      <span>SPX <span class="data-pos">5,231.40 ▲ +0.18%</span></span>
+      <span>NDX <span class="data-pos">18,402.66 ▲ +0.32%</span></span>
+      <span>SX5E <span class="data-neg">5,019.10 ▼ −0.06%</span></span>
+      <span>BRENT <span class="data-pos">84.21 ▲ +0.42%</span></span>
+      <span>UST 10Y <span class="data-neg">4.182 ▼ −4.2 bp</span></span>
+      <span class="divider-v"></span>
+      <span>Session: London · 08:42:11 BST</span>
+    </div>
+
+  </main>
+</body>
+</html>

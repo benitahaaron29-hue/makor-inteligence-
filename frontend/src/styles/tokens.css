@@ -1,0 +1,183 @@
+/* =============================================================================
+   Makor Intelligence Platform — Design Tokens (canonical layer)
+   -----------------------------------------------------------------------------
+   v0.2 — Refined for Makor Securities institutional identity.
+
+   Shifts vs. v0.1:
+   - Surfaces shifted from cool-grey-black to deep navy (Makor identity).
+   - Text colors gently navy-tinted to harmonise.
+   - Editorial serif family added (FT-style research-note typography).
+   - Premium spacing layer added (page-gutter, panel-gap, command-bar).
+   - Two panel variants documented: terminal (default) and research.
+
+   This file is the single source of truth. Do not introduce ad-hoc colors or
+   sizes in components — extend this file, then propagate.
+   ============================================================================= */
+
+:root {
+  /* ---------- SURFACE — deep institutional navy stack ---------- */
+  --surface-base:     #08111F;  /* App background — deep navy, nearly black */
+  --surface-panel:    #0D1828;  /* Default panel */
+  --surface-sunken:   #060D18;  /* Wells (inputs, table interiors) */
+  --surface-raised:   #142136;  /* Sidebar, header, raised strip */
+  --surface-overlay:  #1B2C46;  /* Menus, popovers, modal */
+  --surface-hover:    #213352;  /* Row / item hover */
+  --surface-active:   #28406A;  /* Selected / pressed */
+  --surface-inset:    #0A1422;  /* Inset panels inside a panel */
+  --surface-research: #0B1626;  /* Editorial reading panel — slightly warmer navy */
+
+  /* ---------- BORDER — navy hairlines ---------- */
+  --border-subtle:    #182438;
+  --border-default:   #233452;
+  --border-strong:    #2E4470;
+  --border-focus:     #3970E8;
+  --border-accent:    #1F56D1;  /* used for the left-bar accents */
+
+  /* ---------- TEXT ---------- */
+  --text-primary:     #E8EEF7;  /* off-white, navy-tinted */
+  --text-secondary:   #A4B0C3;
+  --text-tertiary:    #74819A;
+  --text-disabled:    #44516A;
+  --text-inverse:     #0D1828;
+  --text-data:        #F2F5FA;  /* numeric — slightly brighter */
+  --text-eyebrow:     #8A98B0;
+  --text-editorial:   #ECE9E0;  /* warm ivory for serif body — research-note feel */
+  --text-accent:      #5E8FFB;  /* Makor 300 — links, accents */
+
+  /* ---------- BRAND — MAKOR BLUE ---------- */
+  --makor-50:         #EBF2FF;
+  --makor-100:        #C7DAFF;
+  --makor-200:        #93B5FF;
+  --makor-300:        #5E8FFB;
+  --makor-400:        #3970E8;
+  --makor-500:        #1F56D1;  /* primary brand */
+  --makor-600:        #1545AE;
+  --makor-700:        #0E3686;
+  --makor-800:        #0A2A6A;
+  --makor-900:        #06204F;
+  --makor-950:        #03132F;
+
+  /* Secondary accent — used very sparingly for premium / editorial moments
+     (e.g. desk crest, masthead rule). Muted brass, never gold. */
+  --accent-brass:      #B89968;
+  --accent-brass-soft: #2A2218;
+
+  /* ---------- SEMANTIC — FINANCE (muted, institutional) ---------- */
+  --bid:              #1AAE6F;
+  --bid-soft:         #0F3526;   /* navy-tinted soft tint */
+  --offer:            #E5484D;
+  --offer-soft:       #3A1A22;
+  --neutral:          #A4B0C3;
+  --warning:          #E89A3C;
+  --warning-soft:     #382712;
+  --info:             #4A9EFF;
+  --alert:            #FF6A3D;
+
+  /* ---------- RISK TONE ---------- */
+  --risk-on:          #1AAE6F;
+  --risk-off:         #E5484D;
+  --risk-mixed:       #E89A3C;
+  --risk-neutral:     #A4B0C3;
+
+  /* ---------- TYPOGRAPHY — FAMILIES ---------- */
+  --font-sans:    "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:    "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --font-display: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Editorial / research-note serif (FT-style). Source Serif 4 is the
+     reference; Charter / Georgia are acceptable fallbacks. */
+  --font-serif:   "Source Serif 4 Variable", "Source Serif Pro", "Charter", "Georgia", "Times New Roman", serif;
+
+  /* ---------- TYPOGRAPHY — UI SCALE (dense terminal ramp) ---------- */
+  --text-display-size:   32px; --text-display-line:   40px; --text-display-weight:   600; --text-display-track:   -0.02em;
+  --text-h1-size:        24px; --text-h1-line:        32px; --text-h1-weight:        600; --text-h1-track:        -0.015em;
+  --text-h2-size:        20px; --text-h2-line:        28px; --text-h2-weight:        600; --text-h2-track:        -0.01em;
+  --text-h3-size:        16px; --text-h3-line:        22px; --text-h3-weight:        600; --text-h3-track:        -0.005em;
+  --text-h4-size:        14px; --text-h4-line:        20px; --text-h4-weight:        600; --text-h4-track:        0;
+  --text-body-size:      13px; --text-body-line:      20px; --text-body-weight:      400; --text-body-track:      0;
+  --text-body-sm-size:   12px; --text-body-sm-line:   18px; --text-body-sm-weight:   400; --text-body-sm-track:   0;
+  --text-caption-size:   11px; --text-caption-line:   16px; --text-caption-weight:   400; --text-caption-track:   0.01em;
+  --text-eyebrow-size:   10px; --text-eyebrow-line:   14px; --text-eyebrow-weight:   600; --text-eyebrow-track:   0.10em;
+  --text-data-lg-size:   14px; --text-data-lg-line:   20px; --text-data-lg-weight:   500;
+  --text-data-size:      12px; --text-data-line:      18px; --text-data-weight:      500;
+  --text-data-sm-size:   11px; --text-data-sm-line:   16px; --text-data-sm-weight:   500;
+
+  /* ---------- TYPOGRAPHY — EDITORIAL SCALE (research-note serif) ---------- */
+  --text-edit-display-size: 40px; --text-edit-display-line: 48px; --text-edit-display-weight: 600; --text-edit-display-track: -0.018em;
+  --text-edit-h1-size:      30px; --text-edit-h1-line:      38px; --text-edit-h1-weight:      600; --text-edit-h1-track:      -0.012em;
+  --text-edit-h2-size:      22px; --text-edit-h2-line:      30px; --text-edit-h2-weight:      600; --text-edit-h2-track:      -0.005em;
+  --text-edit-dek-size:     17px; --text-edit-dek-line:     26px; --text-edit-dek-weight:     400; --text-edit-dek-track:     -0.003em;
+  --text-edit-body-size:    15px; --text-edit-body-line:    24px; --text-edit-body-weight:    400; --text-edit-body-track:    0;
+  --text-edit-quote-size:   18px; --text-edit-quote-line:   28px; --text-edit-quote-weight:   500; --text-edit-quote-track:   -0.005em;
+
+  /* ---------- SPACING (4px micro / 8px macro) ---------- */
+  --space-0:   0;
+  --space-px:  1px;
+  --space-1:   4px;
+  --space-1-5: 6px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   28px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-14:  56px;
+  --space-16:  64px;
+  --space-20:  80px;
+
+  /* Premium spacing — used at the chrome layer (page gutters, panel gaps,
+     editorial padding). Density still rules inside data panels. */
+  --space-panel-pad:        16px;  /* default panel body */
+  --space-panel-pad-prem:   20px;  /* premium panel body */
+  --space-panel-pad-edit:   28px;  /* editorial / research-note body */
+  --space-panel-header-h:   44px;  /* default panel header */
+  --space-panel-header-h-prem: 52px; /* premium panel header */
+
+  /* ---------- RADIUS — sharp ---------- */
+  --radius-none: 0;
+  --radius-xs:   1px;
+  --radius-sm:   2px;
+  --radius-md:   3px;
+  --radius-lg:   4px;
+  --radius-pill: 999px;
+
+  /* ---------- BORDERS ---------- */
+  --border-width-hairline: 1px;
+  --border-width-focus:    2px;
+  --border-width-accent:   2px;
+
+  /* ---------- LAYOUT ---------- */
+  --layout-sidebar-w:         248px;   /* widened from 240 for premium feel */
+  --layout-sidebar-w-compact: 208px;
+  --layout-header-h:          56px;    /* premium command bar (was 48) */
+  --layout-status-h:          28px;
+  --layout-min-width:         1280px;
+  --layout-grid-bp-wide:      1600px;  /* threshold for wider gutters */
+  --layout-panel-gap:         16px;    /* premium gap (was 12) */
+  --layout-page-gutter:       20px;    /* premium gutter (was 16) */
+  --layout-research-max-w:    760px;   /* editorial reading column */
+
+  /* ---------- ELEVATION (overlays only) ---------- */
+  --elevation-overlay: 0 1px 0 0 rgba(0,0,0,0.50), 0 8px 24px -8px rgba(0,0,0,0.60);
+  --elevation-popover: 0 1px 0 0 rgba(0,0,0,0.50), 0 4px 12px -4px rgba(0,0,0,0.50);
+
+  /* ---------- MOTION — minimal ---------- */
+  --motion-instant:   0ms;
+  --motion-fast:      80ms;
+  --motion-medium:    160ms;
+  --motion-tick:      400ms;
+  --easing-linear:    linear;
+  --easing-out:       cubic-bezier(0.22, 1, 0.36, 1);  /* reserved for command-bar reveal only */
+
+  /* ---------- Z-INDEX ---------- */
+  --z-base:        0;
+  --z-sticky:      10;
+  --z-sidebar:     20;
+  --z-header:      30;
+  --z-dropdown:    40;
+  --z-overlay:     50;
+  --z-modal:       60;
+  --z-toast:       70;
+}

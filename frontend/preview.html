@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1440" />
+  <title>Makor Intelligence — Morning Briefing · Dashboard</title>
+
+  <!-- Inter (sans / display) -->
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <!-- JetBrains Mono (data) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jetbrains-mono@2.304.0/css/jetbrains-mono.css" />
+  <!-- Source Serif 4 (editorial / research note) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="src/styles/tokens.css" />
+  <link rel="stylesheet" href="src/styles/components.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-sans); font-size: 13px; line-height: 20px; min-width: 1280px; }
+    body { display: grid; grid-template-columns: var(--layout-sidebar-w) 1fr; }
+    main { display: flex; flex-direction: column; min-width: 0; }
+
+    /* helpers for the wireframe */
+    .row { display: flex; align-items: center; gap: 8px; }
+    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .stack { display: flex; flex-direction: column; gap: 12px; }
+    .stack-tight { display: flex; flex-direction: column; gap: 6px; }
+    .swatch-strip { display: flex; gap: 0; }
+    .swatch-cell { flex: 1; height: 18px; }
+    .preview-hero-art { background: linear-gradient(180deg, var(--surface-research) 0%, var(--surface-panel) 100%); }
+    .key-num { color: var(--text-data); font-family: var(--font-mono); }
+    .nav-link { color: var(--text-accent); font-size: var(--text-body-sm-size); }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================ SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-row">
+        <span class="sidebar-brand-crest"></span>
+        <div>
+          <div class="sidebar-brand-name">MAKOR</div>
+          <div class="sidebar-brand-sub">Intelligence · FX</div>
+        </div>
+      </div>
+      <div class="sidebar-session">
+        <span class="sidebar-session-key">Desk</span>
+        <span class="sidebar-session-value">Macro &amp; FX</span>
+        <span class="sidebar-session-key">Session</span>
+        <span class="sidebar-session-value">LDN · 08:42 BST</span>
+        <span class="sidebar-session-key">Regime</span>
+        <span class="sidebar-session-value" style="color: var(--bid);">Risk-On · stable</span>
+      </div>
+    </div>
+
+    <div class="sidebar-scroll">
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Desk</div>
+        <div class="sidebar-item is-active">
+          <span class="sidebar-item-label">Morning Briefing</span>
+          <span class="sidebar-item-badge">11</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-item-label">Live Markets</span>
+          <span class="sidebar-item-badge"><span class="live-dot" style="background:var(--bid); width:5px; height:5px;"></span></span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-item-label">Economic Calendar</span>
+          <span class="sidebar-item-badge sidebar-item-badge-alert">3</span>
+        </div>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Analytics</div>
+        <div class="sidebar-item"><span class="sidebar-item-label">FX Regime</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Volatility Surface</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Macro Themes</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Positioning</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Correlations</span></div>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Research</div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Strategist Notes</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Briefing Archive</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Special Reports</span></div>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Desk Tools</div>
+        <div class="sidebar-item"><span class="sidebar-item-label">P&amp;L Console</span></div>
+        <div class="sidebar-item"><span class="sidebar-item-label">Settings</span></div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-row">
+        <span><span class="live-dot"></span>&nbsp;&nbsp;LIVE FEED</span>
+        <span>08:42:11</span>
+      </div>
+      <div class="sidebar-footer-row">
+        <span style="color: var(--text-tertiary);">A. Benitah · Strategy</span>
+        <span class="kbd">⌘</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================================================ MAIN -->
+  <main>
+
+    <!-- COMMAND BAR -->
+    <div class="command-bar">
+      <div class="command-bar-left">
+        <div class="breadcrumb">
+          <a href="#">Desk</a>
+          <span class="sep">/</span>
+          <span class="current">Morning Briefing</span>
+        </div>
+        <span class="divider-v" style="height: 18px;"></span>
+        <div class="row" style="gap: 6px;">
+          <span class="status-pill status-pill-published">Published</span>
+          <span class="status-pill risk-on">Risk-On</span>
+        </div>
+      </div>
+
+      <div class="command-bar-center">
+        <div class="command-search">
+          <span class="command-search-icon">⌕</span>
+          <span class="command-search-text">Search briefings, tickers, themes, events…</span>
+          <span class="command-search-hint"><span class="kbd">⌘</span><span class="kbd">K</span></span>
+        </div>
+      </div>
+
+      <div class="command-bar-right">
+        <div class="regime-widget regime-on">
+          <span class="regime-widget-mark"></span>
+          <div class="regime-widget-body">
+            <span class="regime-widget-label">Desk Regime</span>
+            <span class="regime-widget-value">Risk-On · 4.2σ</span>
+          </div>
+          <span class="sparkline" aria-hidden="true">
+            <svg width="56" height="20" viewBox="0 0 56 20" fill="none">
+              <polyline points="0,14 6,12 12,13 18,9 24,11 30,8 36,7 42,9 48,5 56,4"
+                        stroke="currentColor" stroke-width="1.25" fill="none" />
+            </svg>
+          </span>
+        </div>
+        <span class="divider-v" style="height: 18px;"></span>
+        <button class="btn"><span class="kbd">G</span><span class="kbd">N</span>&nbsp;Generate</button>
+        <button class="btn btn-primary">Publish · ⌘P</button>
+      </div>
+    </div>
+
+    <!-- ============================================================ WORKSPACE -->
+    <div class="workspace">
+
+      <!-- Editorial hero — col-8 -->
+      <div class="col-span-8 panel panel-highlight panel-research">
+        <div class="panel-header panel-header-prem">
+          <div class="panel-header-title">
+            <span class="eyebrow">Morning FX &amp; Macro · 11 May 2026</span>
+            <span class="heading-4">Daily Briefing</span>
+          </div>
+          <div class="panel-header-actions">
+            <span class="caption">Updated 08:42:11 BST</span>
+            <button class="btn btn-sm">Open ⌘O</button>
+          </div>
+        </div>
+        <div class="panel-body panel-body-edit">
+          <div class="editorial-display" style="max-width: 720px;">
+            Dollar firm, front-end USTs bid into US CPI as desks de-risk into the print.
+          </div>
+          <div class="editorial-dek" style="margin-top: 16px; max-width: 720px;">
+            Overnight price action leaned risk-on, with the dollar bid against the funders
+            and the belly of the UST curve receiving real-money flow ahead of a 3.1 %
+            forecast. We maintain a tactical bias to fade USD strength on confirmation
+            of disinflation, watching credit and front-end vol for early dislocation.
+          </div>
+          <div class="editorial-meta" style="margin-top: 20px;">
+            <span>By A. Benitah · Macro &amp; FX</span>
+            <span>11 May 2026 · 06:30 GMT</span>
+            <span><span class="live-dot" style="background: var(--bid);"></span>&nbsp;<span style="color: var(--bid);">Live</span></span>
+          </div>
+          <div class="divider-h" style="margin-top: 24px; margin-bottom: 16px;"></div>
+          <div class="row" style="gap: 20px;">
+            <a class="nav-link" href="#">FX Commentary →</a>
+            <a class="nav-link" href="#">Rates →</a>
+            <a class="nav-link" href="#">Equities →</a>
+            <a class="nav-link" href="#">Commodities →</a>
+            <a class="nav-link" href="#">Key Events →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Regime / Macro Overview — col-4 -->
+      <div class="col-span-4 panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="eyebrow">Regime · Today</span>
+            <span class="heading-4">Macro Snapshot</span>
+          </div>
+          <div class="panel-header-actions">
+            <span class="kbd">R</span><span class="kbd">G</span>
+          </div>
+        </div>
+        <div class="panel-body panel-body-prem">
+          <div class="stack-tight">
+            <div class="row-between">
+              <span class="eyebrow">Risk Sentiment</span>
+              <span class="status-pill risk-on">Risk-On</span>
+            </div>
+            <div class="row-between">
+              <span class="eyebrow">USD Trend</span>
+              <span class="ticker-chip ticker-chip-pos">▲ +0.18%</span>
+            </div>
+            <div class="row-between">
+              <span class="eyebrow">Front-End USTs</span>
+              <span class="ticker-chip ticker-chip-pos">▲ −4 bp</span>
+            </div>
+            <div class="row-between">
+              <span class="eyebrow">Equity Vol (VIX)</span>
+              <span class="ticker-chip ticker-chip-neg">▼ 14.21</span>
+            </div>
+            <div class="row-between">
+              <span class="eyebrow">FX Vol (DXY 1M)</span>
+              <span class="ticker-chip ticker-chip-neu">▬ 6.4</span>
+            </div>
+            <div class="row-between">
+              <span class="eyebrow">Credit (CDX IG)</span>
+              <span class="ticker-chip ticker-chip-pos">▲ −1.2 bp</span>
+            </div>
+          </div>
+          <div class="divider-h"></div>
+          <div class="caption" style="line-height: 18px;">
+            Macro factors aggregated 06:30 GMT from BBG composite, Reuters,
+            CBOE. Regime model: Makor-MR-v3 (4.2σ from neutral).
+          </div>
+        </div>
+      </div>
+
+      <!-- Desk performance metrics — col-12 -->
+      <div class="col-span-12 panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="eyebrow">Desk · MTD</span>
+            <span class="heading-4">Performance &amp; Exposure</span>
+          </div>
+          <div class="panel-header-actions">
+            <div class="segmented">
+              <button class="segmented-item">DTD</button>
+              <button class="segmented-item is-active">MTD</button>
+              <button class="segmented-item">QTD</button>
+              <button class="segmented-item">YTD</button>
+            </div>
+            <span class="caption">USD</span>
+          </div>
+        </div>
+        <div class="panel-body" style="display: flex; align-items: stretch; padding: 16px 20px;">
+          <div class="metric-tile">
+            <span class="metric-tile-label">Desk P&amp;L</span>
+            <span class="metric-tile-value" style="color: var(--bid);">+ 2,184,750.42</span>
+            <span class="metric-tile-delta data-pos">▲ +0.42% DoD</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-tile-label">FX</span>
+            <span class="metric-tile-value" style="color: var(--bid);">+ 1,420,118</span>
+            <span class="metric-tile-delta data-pos">▲ +0.61%</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-tile-label">Rates</span>
+            <span class="metric-tile-value" style="color: var(--bid);">+ 612,540</span>
+            <span class="metric-tile-delta data-pos">▲ +0.18%</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-tile-label">Commodities</span>
+            <span class="metric-tile-value" style="color: var(--offer);">−  28,402</span>
+            <span class="metric-tile-delta data-neg">▼ −0.04%</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-tile-label">Other</span>
+            <span class="metric-tile-value">+ 180,494</span>
+            <span class="metric-tile-delta data-neu">▬ ±0.00%</span>
+          </div>
+          <div class="metric-tile" style="margin-left: auto;">
+            <span class="metric-tile-label">Sharpe (12M)</span>
+            <span class="metric-tile-value">2.84</span>
+            <span class="metric-tile-delta data-neu">peer · 1.92</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-tile-label">VaR (1d, 99 %)</span>
+            <span class="metric-tile-value">418,210</span>
+            <span class="metric-tile-delta caption" style="color: var(--text-tertiary);">limit 1,000,000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FX Majors — col-7 -->
+      <div class="col-span-7 panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="eyebrow">FX · G10 Spot</span>
+            <span class="heading-4">Majors</span>
+          </div>
+          <div class="panel-header-actions">
+            <div class="segmented">
+              <button class="segmented-item is-active">Spot</button>
+              <button class="segmented-item">1W</button>
+              <button class="segmented-item">1M</button>
+            </div>
+            <span class="caption">BBG composite</span>
+            <span class="kbd">F</span><span class="kbd">X</span>
+          </div>
+        </div>
+        <div class="panel-flush">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Pair</th>
+                <th class="col-num">Last</th>
+                <th class="col-num">Δ</th>
+                <th class="col-num">Δ%</th>
+                <th class="col-num">Day Range</th>
+                <th>1W Sparkline</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>EUR/USD</td><td class="col-num">1.0842</td><td class="col-num data-pos">+0.0023</td><td class="col-num data-pos cell-heat-positive">+0.21%</td><td class="col-num">1.0814 – 1.0851</td><td>
+                <span class="sparkline"><svg width="80" height="18"><polyline points="0,14 10,12 20,13 30,9 40,11 50,8 60,7 70,6 80,4" stroke="var(--bid)" stroke-width="1.25" fill="none"/></svg></span>
+              </td></tr>
+              <tr><td>GBP/USD</td><td class="col-num">1.2734</td><td class="col-num data-neg">−0.0011</td><td class="col-num data-neg cell-heat-negative">−0.08%</td><td class="col-num">1.2728 – 1.2761</td><td>
+                <span class="sparkline" style="color: var(--offer);"><svg width="80" height="18"><polyline points="0,6 10,8 20,7 30,10 40,9 50,11 60,12 70,11 80,13" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span>
+              </td></tr>
+              <tr class="is-selected"><td>USD/JPY</td><td class="col-num">154.21</td><td class="col-num data-neg">−0.18</td><td class="col-num data-neg cell-heat-negative">−0.12%</td><td class="col-num">154.05 – 154.61</td><td>
+                <span class="sparkline" style="color: var(--offer);"><svg width="80" height="18"><polyline points="0,4 10,6 20,5 30,8 40,7 50,9 60,11 70,12 80,13" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span>
+              </td></tr>
+              <tr><td>USD/CHF</td><td class="col-num">0.9047</td><td class="col-num data-pos">+0.0008</td><td class="col-num data-pos cell-heat-positive">+0.09%</td><td class="col-num">0.9032 – 0.9058</td><td>
+                <span class="sparkline"><svg width="80" height="18"><polyline points="0,12 10,11 20,11 30,9 40,10 50,8 60,8 70,7 80,7" stroke="var(--bid)" stroke-width="1.25" fill="none"/></svg></span>
+              </td></tr>
+              <tr><td>AUD/USD</td><td class="col-num">0.6614</td><td class="col-num data-neu">±0.0000</td><td class="col-num data-neu">±0.00%</td><td class="col-num">0.6602 – 0.6629</td><td>
+                <span class="sparkline" style="color: var(--neutral);"><svg width="80" height="18"><polyline points="0,9 10,10 20,9 30,10 40,9 50,10 60,9 70,10 80,9" stroke="var(--neutral)" stroke-width="1.25" fill="none"/></svg></span>
+              </td></tr>
+              <tr><td>USD/CAD</td><td class="col-num">1.3692</td><td class="col-num data-pos">+0.0014</td><td class="col-num data-pos cell-heat-positive">+0.10%</td><td class="col-num">1.3672 – 1.3705</td><td>
+                <span class="sparkline"><svg width="80" height="18"><polyline points="0,13 10,12 20,12 30,10 40,11 50,9 60,8 70,7 80,6" stroke="var(--bid)" stroke-width="1.25" fill="none"/></svg></span>
+              </td></tr>
+              <tr><td>NZD/USD</td><td class="col-num">0.5921</td><td class="col-num data-neg">−0.0007</td><td class="col-num data-neg cell-heat-negative">−0.12%</td><td class="col-num">0.5915 – 0.5933</td><td>
+                <span class="sparkline" style="color: var(--offer);"><svg width="80" height="18"><polyline points="0,7 10,8 20,7 30,9 40,10 50,9 60,11 70,12 80,11" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel-footer">
+          <span>Showing 7 of 14 majors · 08:42:11 BST</span>
+          <span><a class="nav-link" href="#">Open full board →</a></span>
+        </div>
+      </div>
+
+      <!-- Rates curve — col-5 -->
+      <div class="col-span-5 panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="eyebrow">Rates · G7</span>
+            <span class="heading-4">Yield Curve · 10Y</span>
+          </div>
+          <div class="panel-header-actions">
+            <div class="segmented">
+              <button class="segmented-item">2Y</button>
+              <button class="segmented-item is-active">10Y</button>
+              <button class="segmented-item">30Y</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel-flush">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sovereign</th>
+                <th class="col-num">Yield</th>
+                <th class="col-num">Δ bp</th>
+                <th class="col-num">5Y vs 30Y</th>
+                <th>Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>US 10Y</td><td class="col-num">4.182</td><td class="col-num data-neg">−4.2</td><td class="col-num">+22.4</td><td><span class="sparkline" style="color: var(--offer);"><svg width="72" height="16"><polyline points="0,4 9,5 18,6 27,7 36,9 45,10 54,11 63,12 72,13" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+              <tr><td>DE 10Y</td><td class="col-num">2.467</td><td class="col-num data-neg">−2.1</td><td class="col-num">+18.1</td><td><span class="sparkline" style="color: var(--offer);"><svg width="72" height="16"><polyline points="0,5 9,6 18,6 27,7 36,8 45,9 54,10 63,11 72,12" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+              <tr><td>UK 10Y</td><td class="col-num">4.038</td><td class="col-num data-pos">+0.8</td><td class="col-num">+ 9.6</td><td><span class="sparkline"><svg width="72" height="16"><polyline points="0,9 9,8 18,9 27,7 36,8 45,7 54,6 63,6 72,5" stroke="var(--bid)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+              <tr><td>FR 10Y</td><td class="col-num">2.954</td><td class="col-num data-neg">−1.8</td><td class="col-num">+15.2</td><td><span class="sparkline" style="color: var(--offer);"><svg width="72" height="16"><polyline points="0,5 9,6 18,7 27,8 36,9 45,10 54,11 63,12 72,12" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+              <tr><td>JP 10Y</td><td class="col-num">0.948</td><td class="col-num data-neu">±0.0</td><td class="col-num">+ 6.8</td><td><span class="sparkline" style="color: var(--neutral);"><svg width="72" height="16"><polyline points="0,8 9,8 18,8 27,8 36,8 45,8 54,8 63,8 72,8" stroke="var(--neutral)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+              <tr><td>IT 10Y</td><td class="col-num">3.621</td><td class="col-num data-neg">−3.0</td><td class="col-num">+24.8</td><td><span class="sparkline" style="color: var(--offer);"><svg width="72" height="16"><polyline points="0,4 9,5 18,7 27,8 36,9 45,10 54,11 63,12 72,13" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+              <tr><td>CA 10Y</td><td class="col-num">3.412</td><td class="col-num data-neg">−1.4</td><td class="col-num">+12.1</td><td><span class="sparkline" style="color: var(--offer);"><svg width="72" height="16"><polyline points="0,6 9,7 18,8 27,8 36,9 45,9 54,10 63,11 72,12" stroke="var(--offer)" stroke-width="1.25" fill="none"/></svg></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Key events — col-5 -->
+      <div class="col-span-5 panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="eyebrow">Calendar · Today</span>
+            <span class="heading-4">Key Events</span>
+          </div>
+          <div class="panel-header-actions">
+            <span class="caption" style="color: var(--alert);">3 high-impact</span>
+            <span class="kbd">C</span><span class="kbd">A</span>
+          </div>
+        </div>
+        <div class="panel-flush">
+          <table class="data-table data-table-compact">
+            <thead>
+              <tr><th>Time</th><th>Region</th><th>Event</th><th class="col-center">Imp.</th><th class="col-num">Forecast</th><th class="col-num">Prev.</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="col-num">08:00</td><td>DE</td><td>ZEW Economic Sentiment</td><td class="col-center"><span class="status-pill">Med</span></td><td class="col-num">12.5</td><td class="col-num">10.7</td></tr>
+              <tr><td class="col-num">10:00</td><td>EZ</td><td>Industrial Production YoY</td><td class="col-center"><span class="status-pill">Med</span></td><td class="col-num">+1.2%</td><td class="col-num">+0.6%</td></tr>
+              <tr class="is-selected"><td class="col-num">12:30</td><td>US</td><td>CPI YoY</td><td class="col-center"><span class="status-pill status-pill-alert">High</span></td><td class="col-num">3.1%</td><td class="col-num">3.2%</td></tr>
+              <tr><td class="col-num">12:30</td><td>US</td><td>CPI Core MoM</td><td class="col-center"><span class="status-pill status-pill-alert">High</span></td><td class="col-num">+0.3%</td><td class="col-num">+0.4%</td></tr>
+              <tr><td class="col-num">14:00</td><td>US</td><td>FOMC panel · Williams, Logan</td><td class="col-center"><span class="status-pill">Med</span></td><td class="col-num">—</td><td class="col-num">—</td></tr>
+              <tr><td class="col-num">17:00</td><td>US</td><td>3Y Note Auction</td><td class="col-center"><span class="status-pill status-pill-archived">Low</span></td><td class="col-num">4.34</td><td class="col-num">4.39</td></tr>
+              <tr><td class="col-num">23:50</td><td>JP</td><td>Machinery Orders MoM</td><td class="col-center"><span class="status-pill status-pill-archived">Low</span></td><td class="col-num">+0.8%</td><td class="col-num">−1.5%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Themes — col-4 -->
+      <div class="col-span-4 panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="eyebrow">Watchlist</span>
+            <span class="heading-4">Macro Themes</span>
+          </div>
+        </div>
+        <div class="panel-body panel-body-prem">
+          <div class="stack-tight">
+            <div class="row-between"><span class="body-sm">Fed reaction function</span><span class="ticker-chip ticker-chip-pos">▲ +12 bp</span></div>
+            <div class="row-between"><span class="body-sm">China growth pulse</span><span class="ticker-chip ticker-chip-neg">▼ −2.1</span></div>
+            <div class="row-between"><span class="body-sm">USD funding stress</span><span class="ticker-chip ticker-chip-neu">▬ flat</span></div>
+            <div class="row-between"><span class="body-sm">Oil supply premium</span><span class="ticker-chip ticker-chip-pos">▲ +0.8</span></div>
+            <div class="row-between"><span class="body-sm">EM carry conditions</span><span class="ticker-chip ticker-chip-pos">▲ +3 bp</span></div>
+            <div class="row-between"><span class="body-sm">Eurozone fiscal pulse</span><span class="ticker-chip ticker-chip-neu">▬ −</span></div>
+            <div class="row-between"><span class="body-sm">BoJ normalisation</span><span class="ticker-chip ticker-chip-pos">▲ +0.4</span></div>
+          </div>
+        </div>
+        <div class="panel-footer">
+          <span>7 active themes</span>
+          <a class="nav-link" href="#">Open themes →</a>
+        </div>
+      </div>
+
+      <!-- Vol surface mini — col-4 -->
+      <div class="col-span-4 panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="eyebrow">Vol · 1M ATM</span>
+            <span class="heading-4">FX Volatility</span>
+          </div>
+          <div class="panel-header-actions">
+            <span class="caption">Δ vs 5d avg</span>
+          </div>
+        </div>
+        <div class="panel-body panel-body-prem">
+          <table class="data-table data-table-compact" style="border: none;">
+            <thead>
+              <tr><th>Pair</th><th class="col-num">1M ATM</th><th class="col-num">25Δ RR</th><th class="col-num">Bias</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>EUR/USD</td><td class="col-num">6.42</td><td class="col-num data-neg">−0.18</td><td class="col-num data-neg">USD calls</td></tr>
+              <tr><td>GBP/USD</td><td class="col-num">7.18</td><td class="col-num data-neg">−0.42</td><td class="col-num data-neg">USD calls</td></tr>
+              <tr><td>USD/JPY</td><td class="col-num">8.94</td><td class="col-num data-pos">+0.62</td><td class="col-num data-pos">JPY calls</td></tr>
+              <tr><td>AUD/USD</td><td class="col-num">9.21</td><td class="col-num data-neg">−0.31</td><td class="col-num data-neg">USD calls</td></tr>
+              <tr><td>USD/CNH</td><td class="col-num">4.06</td><td class="col-num data-neu">±0.00</td><td class="col-num data-neu">balanced</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Briefing meta — col-4 -->
+      <div class="col-span-4 panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="eyebrow">Strategist</span>
+            <span class="heading-4">Briefing Metadata</span>
+          </div>
+        </div>
+        <div class="panel-body panel-body-prem">
+          <div class="sidebar-session" style="grid-template-columns: 96px 1fr;">
+            <span class="sidebar-session-key">ID</span>
+            <span class="sidebar-session-value" style="font-size: 11px;">14ad675c-fc9e-4a4e-94f2</span>
+            <span class="sidebar-session-key">Date</span>
+            <span class="sidebar-session-value">2026-05-11</span>
+            <span class="sidebar-session-key">Type</span>
+            <span class="sidebar-session-value">morning_fx_macro</span>
+            <span class="sidebar-session-key">Status</span>
+            <span class="sidebar-session-value" style="color: var(--bid);">Published</span>
+            <span class="sidebar-session-key">Risk Tone</span>
+            <span class="sidebar-session-value" style="color: var(--bid);">Risk-On</span>
+            <span class="sidebar-session-key">Source</span>
+            <span class="sidebar-session-value">mock-v1</span>
+            <span class="sidebar-session-key">Author</span>
+            <span class="sidebar-session-value">A. Benitah · AI Draft</span>
+            <span class="sidebar-session-key">Published</span>
+            <span class="sidebar-session-value">06:30 GMT</span>
+          </div>
+          <div class="divider-h"></div>
+          <div class="row" style="gap: 6px;">
+            <button class="btn btn-sm">View JSON</button>
+            <button class="btn btn-sm">Copy link</button>
+            <button class="btn btn-sm">Email desk</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STATUS TICKER -->
+    <div class="status-ticker">
+      <span><span class="live-dot"></span>&nbsp;&nbsp;LIVE</span>
+      <span class="divider-v"></span>
+      <span>SPX <span class="data-pos">5,231.40 ▲ +0.18%</span></span>
+      <span>NDX <span class="data-pos">18,402.66 ▲ +0.32%</span></span>
+      <span>SX5E <span class="data-neg">5,019.10 ▼ −0.06%</span></span>
+      <span>NKY <span class="data-pos">39,228.50 ▲ +0.41%</span></span>
+      <span>BRENT <span class="data-pos">84.21 ▲ +0.42%</span></span>
+      <span>WTI <span class="data-pos">79.94 ▲ +0.38%</span></span>
+      <span>GOLD <span class="data-neg">2,328.55 ▼ −0.08%</span></span>
+      <span>UST 10Y <span class="data-neg">4.182 ▼ −4.2 bp</span></span>
+      <span>BUND 10Y <span class="data-neg">2.467 ▼ −2.1 bp</span></span>
+      <span>DXY <span class="data-pos">104.81 ▲ +0.18%</span></span>
+      <span class="divider-v"></span>
+      <span>Session: London · 08:42:11 BST</span>
+    </div>
+
+  </main>
+
+</body>
+</html>
