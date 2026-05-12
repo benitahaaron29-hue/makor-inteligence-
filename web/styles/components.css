@@ -2215,19 +2215,19 @@
         content: "Confidential · For desk distribution only";
         font-family: "Inter Variable", "Inter", sans-serif;
         font-size: 8pt;
-        color: #6B788C;
+        color: #4B5B72;
       }
       @bottom-left {
         content: "Makor Securities · Macro & FX Desk · " counter(page) " / " counter(pages);
         font-family: "Inter Variable", "Inter", sans-serif;
         font-size: 8pt;
-        color: #6B788C;
+        color: #4B5B72;
       }
       @bottom-right {
         content: "Not for client redistribution";
         font-family: "Inter Variable", "Inter", sans-serif;
         font-size: 8pt;
-        color: #6B788C;
+        color: #4B5B72;
       }
     }
 
@@ -2282,7 +2282,7 @@
     .editorial-dek     { font-size: 12pt !important; line-height: 17pt !important; color: #233452 !important; }
     .editorial-body,
     .editorial-body p  { color: #0D1828 !important; font-size: 11pt !important; line-height: 16pt !important; }
-    .editorial-meta    { color: #74819A !important; }
+    .editorial-meta    { color: #4B5B72 !important; }
     .heading-3,
     .heading-4         { color: #08111F !important; }
     .eyebrow           { color: #5E8FFB !important; }
@@ -2312,7 +2312,7 @@
     .data { color: #0D1828 !important; }
     .data-pos { color: #1AAE6F !important; }
     .data-neg { color: #B91F26 !important; }
-    .data-neu { color: #74819A !important; }
+    .data-neu { color: #4B5B72 !important; }
 
     /* Editorial primitives — light surfaces, dark text. */
     .editorial-takeaways,
@@ -2372,7 +2372,7 @@
     section#trades { page-break-before: auto; }
 
     .provenance-footer {
-      color: #74819A !important;
+      color: #4B5B72 !important;
       border-top-color: #C7DAFF !important;
     }
 
@@ -2414,7 +2414,7 @@
       font-size: 8pt !important;
       letter-spacing: 0.14em !important;
       text-transform: uppercase;
-      color: #6B788C !important;
+      color: #4B5B72 !important;
     }
     .print-masthead-right {
       text-align: right;
@@ -2433,7 +2433,7 @@
       font-family: "JetBrains Mono Variable", "JetBrains Mono", monospace !important;
       font-variant-numeric: tabular-nums;
       font-size: 9pt !important;
-      color: #6B788C !important;
+      color: #4B5B72 !important;
     }
 
     /* Institutional signoff at the foot of the briefing on print */
@@ -2468,7 +2468,7 @@
       font-size: 8pt !important;
       text-transform: uppercase;
       letter-spacing: 0.14em !important;
-      color: #6B788C !important;
+      color: #4B5B72 !important;
       font-weight: 600 !important;
     }
     .print-signoff-value {
@@ -2480,7 +2480,7 @@
       font-family: "Source Serif 4 Variable", "Source Serif Pro", "Charter", "Georgia", serif !important;
       font-size: 8.5pt !important;
       line-height: 12pt !important;
-      color: #6B788C !important;
+      color: #4B5B72 !important;
       font-style: italic;
       max-width: none;
     }
@@ -2921,5 +2921,66 @@
   }
   .terminal-radar-row.is-p1::before {
     left: 0;
+  }
+}
+
+/* =============================================================================
+   DEMO DISCLOSURE — source-integrity banner
+
+   Renders when the briefing carries data_provenance === "demo". Honest,
+   non-decorative line that signals market levels in the briefing are
+   illustrative rather than sourced from a live data service. Designed to
+   read naturally in both screen (dark) and print (paper) modes; the
+   @media print block at the top of this file already promotes the
+   light-mode override for the print/export document.
+   ============================================================================= */
+
+.demo-disclosure {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  margin: 12px 0 20px;
+  background: var(--accent-brass-soft);
+  border-left: 2px solid var(--accent-brass);
+  border-radius: 2px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--text-secondary);
+  max-width: var(--layout-research-max-w);
+}
+.demo-disclosure-eyebrow {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--accent-brass);
+  padding-top: 1px;
+}
+.demo-disclosure-body {
+  flex: 1;
+}
+
+/* Print/export — keep the disclosure visible but lighten the chrome so it
+   reads as a footnote rather than an alert. All colors deep enough for
+   WCAG-AA against white paper. */
+@media print {
+  .demo-disclosure {
+    background: #FBF6EC !important;
+    border-left: 0.6pt solid #8A7140 !important;
+    color: #233452 !important;
+    padding: 6pt 10pt !important;
+    margin: 8pt 0 12pt !important;
+    font-size: 9pt !important;
+    line-height: 13pt !important;
+  }
+  .demo-disclosure-eyebrow {
+    color: #8A7140 !important;
+    font-size: 8pt !important;
+  }
+  .demo-disclosure-body {
+    color: #233452 !important;
   }
 }

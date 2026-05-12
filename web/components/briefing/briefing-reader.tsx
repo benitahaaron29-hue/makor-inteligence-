@@ -37,6 +37,7 @@ import type {
   StrategistView as StrategistViewT,
   SessionBreakdown as SessionBreakdownT,
   TradeIdea,
+  InstrumentWatch,
   WhatChanged as WhatChangedT,
 } from "@/lib/types/briefing";
 
@@ -52,7 +53,7 @@ const SECTIONS = [
   { id: "calendar",      num: "§ 05", title: "Economic Calendar" },
   { id: "central-banks", num: "§ 06", title: "Central Bank Watch" },
   { id: "geopolitical",  num: "§ 07", title: "Geopolitical Pulse" },
-  { id: "trades",        num: "§ 08", title: "Trade Ideas" },
+  { id: "trades",        num: "§ 08", title: "Instruments to Watch" },
   { id: "risks",         num: "§ 09", title: "Key Risks" },
 ];
 
@@ -68,6 +69,9 @@ export function BriefingReader({ briefing }: BriefingReaderProps) {
         <div className="panel-body panel-body-edit">
           {/* INSTITUTIONAL PRINT HEADER — visible only when printing/exporting */}
           <PrintMasthead briefing={briefing} />
+
+          {/* SOURCE-INTEGRITY DISCLOSURE — only when the briefing is demo content */}
+          <DemoDisclosure briefing={briefing} />
 
           {/* OPENER */}
           <div className="masthead-rule" style={{ marginBottom: 20 }} />
@@ -145,7 +149,7 @@ export function BriefingReader({ briefing }: BriefingReaderProps) {
             <GeopoliticalBlock briefing={briefing} intel={intel} />
           </Section>
 
-          <Section id="trades" num="§ 08" title="Trade Ideas">
+          <Section id="trades" num="§ 08" title="Instruments to Watch">
             <TradeIdeasBlock briefing={briefing} intel={intel} />
           </Section>
 
@@ -397,6 +401,27 @@ function PrintMasthead({ briefing }: { briefing: BriefingRead }) {
           {date} · Published {published}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Source-integrity disclosure — renders only when the briefing's
+ * `data_provenance` is "demo". Honest, non-decorative line that signals
+ * the market levels in this briefing are illustrative for layout, not
+ * sourced from live data.
+ *
+ * Backward compatible: briefings without `data_provenance` (live Python
+ * backend, real generator) render nothing here.
+ */
+function DemoDisclosure({ briefing }: { briefing: BriefingRead }) {
+  if (briefing.data_provenance !== "demo") return null;
+  const message = briefing.demo_disclosure ??
+    "Demo content — market levels are illustrative, not sourced from live data.";
+  return (
+    <div className="demo-disclosure" role="note" aria-label="Source disclosure">
+      <span className="demo-disclosure-eyebrow">Demo</span>
+      <span className="demo-disclosure-body">{message}</span>
     </div>
   );
 }
@@ -1634,13 +1659,17 @@ function GeopoliticalBlock({ briefing, intel }: { briefing: BriefingRead; intel:
 // =================================================================== § 08 TRADE IDEAS
 
 function TradeIdeasBlock({ briefing, intel }: { briefing: BriefingRead; intel: Intelligence | null }) {
+  void briefing;
   const stat = pullStatFor("trades", intel);
   const prov = provenanceFor("trades", intel);
+  const watchList = intel?.instruments_to_watch ?? [];
+  const hasWatch = watchList.length > 0;
+  const hasLegacy = !!intel && intel.trade_ideas.length > 0;
 
-  if (!intel || intel.trade_ideas.length === 0) {
+  if (!intel || (!hasWatch && !hasLegacy)) {
     return (
       <p className="caption" style={{ color: "var(--text-tertiary)" }}>
-        No active trade ideas in this briefing.
+        No instruments flagged for monitoring in this briefing.
       </p>
     );
   }
@@ -1651,24 +1680,47 @@ function TradeIdeasBlock({ briefing, intel }: { briefing: BriefingRead; intel: I
         className="body-sm"
         style={{ color: "var(--text-secondary)", marginBottom: 12, maxWidth: "var(--layout-research-max-w)" }}
       >
-        <strong style={{ color: "var(--text-primary)" }}>Desk positioning:</strong>{" "}
-        five active expressions of the same conditional view — soft CPI takes DXY
-        lower, hot CPI forces a curve bear-flatten. The first two ideas are sized for
-        the base case; the USDJPY hedge protects against intervention-talk asymmetry;
-        the Brent and EUR/CHF carry trades are independent themes that survive either
-        outcome.
+        <strong style={{ color: "var(--text-primary)" }}>Monitoring list:</strong>{" "}
+        the instruments below are flagged for desk attention today — observational
+        only, with the catalyst and signal markers noted. Specific entry / target /
+        stop levels are deliberately not shown; this is a watch list, not a
+        recommendation list.
       </p>
 
       {stat ? <PullStatBlock stat={stat} /> : null}
 
       <div>
-        {intel.trade_ideas.map((idea) => <TradeIdeaCard key={idea.rank} idea={idea} />)}
+        {hasWatch
+          ? watchList.map((w) => <InstrumentWatchCard key={w.rank} watch={w} />)
+          : intel.trade_ideas.map((idea) => <TradeIdeaCard key={idea.rank} idea={idea} />)}
       </div>
 
       <PositioningRows notes={intel.positioning} />
 
       {prov ? <ProvenanceFooter entry={prov} /> : null}
     </>
+  );
+}
+
+function InstrumentWatchCard({ watch }: { watch: InstrumentWatch }) {
+  return (
+    <div className="trade-idea instrument-watch">
+      <span className="trade-idea-rank">{String(watch.rank).padStart(2, "0")}</span>
+      <div>
+        <div className="trade-idea-head">
+          <span className="trade-idea-direction">{watch.instrument}</span>
+          {watch.region ? <span className="trade-idea-theme">{watch.region}</span> : null}
+        </div>
+        <p className="trade-idea-rationale">{watch.why_today}</p>
+
+        <dl className="trade-idea-meta">
+          <dt>Catalyst</dt>
+          <dd>{watch.catalyst}</dd>
+          <dt>Desk focus</dt>
+          <dd>{watch.desk_focus}</dd>
+        </dl>
+      </div>
+    </div>
   );
 }
 

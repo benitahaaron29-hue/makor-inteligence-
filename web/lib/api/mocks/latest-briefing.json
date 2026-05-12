@@ -23,7 +23,11 @@
       "topic": "Q1 growth release · post-Mansion House framing",
       "category": "growth",
       "sensitivity": "high",
-      "pairs_affected": ["GBP/USD", "EUR/GBP", "Gilt 10Y"],
+      "pairs_affected": [
+        "GBP/USD",
+        "EUR/GBP",
+        "Gilt 10Y"
+      ],
       "vol_impact": "15-25 pip move in GBP crosses on >0.1pp surprise",
       "desk_focus": "Watch services contribution — any disappointment opens 1.2480 in cable"
     },
@@ -38,7 +42,10 @@
       "topic": "May sentiment read",
       "category": "survey",
       "sensitivity": "medium",
-      "pairs_affected": ["EUR/USD", "EUR/CHF"],
+      "pairs_affected": [
+        "EUR/USD",
+        "EUR/CHF"
+      ],
       "vol_impact": "Limited — EUR pricing already trimmed",
       "desk_focus": "ZEW current-situation more useful than expectations sub-index"
     },
@@ -53,7 +60,11 @@
       "topic": "Balance-sheet normalisation · QT pace",
       "category": "monetary",
       "sensitivity": "desk_critical",
-      "pairs_affected": ["EUR/USD", "Bund 10Y", "Schatz 2Y"],
+      "pairs_affected": [
+        "EUR/USD",
+        "Bund 10Y",
+        "Schatz 2Y"
+      ],
       "vol_impact": "10-20bp Schatz move on any QT acceleration language",
       "desk_focus": "Hawkish ref to APP runoff = sell the front-end Bund curve, lift EUR"
     },
@@ -68,7 +79,11 @@
       "topic": "Public-debt rule · post-Brexit trade · OBR framework",
       "category": "political",
       "sensitivity": "desk_critical",
-      "pairs_affected": ["GBP/USD", "EUR/GBP", "Gilt 10Y"],
+      "pairs_affected": [
+        "GBP/USD",
+        "EUR/GBP",
+        "Gilt 10Y"
+      ],
       "vol_impact": "20-40 pip move in GBP crosses on fiscal-rule changes",
       "desk_focus": "Any softening of fiscal-rule language sells the front-end Gilt curve"
     },
@@ -83,7 +98,13 @@
       "topic": "Inflation print — primary risk event",
       "category": "inflation",
       "sensitivity": "desk_critical",
-      "pairs_affected": ["EUR/USD", "USD/JPY", "DXY", "Treasury 2Y", "Treasury 10Y"],
+      "pairs_affected": [
+        "EUR/USD",
+        "USD/JPY",
+        "DXY",
+        "Treasury 2Y",
+        "Treasury 10Y"
+      ],
       "vol_impact": "40-80 ticks DXY on a ±0.1pp core surprise",
       "desk_focus": "Core services ex-housing is the variable — shelter component already lagging"
     },
@@ -98,7 +119,11 @@
       "topic": "Dollar reserve status · cross-border capital flows",
       "category": "policy",
       "sensitivity": "high",
-      "pairs_affected": ["DXY", "USD/CNY", "USD/EUR"],
+      "pairs_affected": [
+        "DXY",
+        "USD/CNY",
+        "USD/EUR"
+      ],
       "vol_impact": "Tail risk only — could move USD/CNH on reserve-status language",
       "desk_focus": "Watch for any reference to USD strength as 'orderly' vs 'concerning'"
     },
@@ -113,7 +138,12 @@
       "topic": "Reaction function · neutral-rate debate",
       "category": "monetary",
       "sensitivity": "desk_critical",
-      "pairs_affected": ["Treasury 2Y", "Treasury 10Y", "DXY", "USD/JPY"],
+      "pairs_affected": [
+        "Treasury 2Y",
+        "Treasury 10Y",
+        "DXY",
+        "USD/JPY"
+      ],
       "vol_impact": "Front-end re-prices on any 'patient' language",
       "desk_focus": "How many participants flagged services inflation persistence?"
     },
@@ -128,7 +158,10 @@
       "topic": "Mid-curve duration supply",
       "category": "auction",
       "sensitivity": "medium",
-      "pairs_affected": ["Treasury 10Y", "USD/JPY"],
+      "pairs_affected": [
+        "Treasury 10Y",
+        "USD/JPY"
+      ],
       "vol_impact": "2-3bp 10y move on a tail >+1bp",
       "desk_focus": "Indirect bid critical — RM has been on strike since March"
     },
@@ -143,7 +176,11 @@
       "topic": "Post-CPI reaction · neutral-rate framing",
       "category": "monetary",
       "sensitivity": "high",
-      "pairs_affected": ["DXY", "Treasury 2Y", "Treasury 10Y"],
+      "pairs_affected": [
+        "DXY",
+        "Treasury 2Y",
+        "Treasury 10Y"
+      ],
       "vol_impact": "Major — first FOMC voice post-CPI",
       "desk_focus": "If CPI hot, watch for any 'patient' walk-back"
     }
@@ -169,15 +206,15 @@
       "DXY": 105.84
     },
     "rates": {
-      "US 2Y": 4.3120,
-      "US 5Y": 4.2840,
-      "US 10Y": 4.4480,
-      "US 30Y": 4.6190,
-      "DE 2Y": 2.3360,
-      "DE 10Y": 2.4830,
-      "UK 2Y": 4.1740,
-      "UK 10Y": 4.2360,
-      "JP 10Y": 0.9460
+      "US 2Y": 4.312,
+      "US 5Y": 4.284,
+      "US 10Y": 4.448,
+      "US 30Y": 4.619,
+      "DE 2Y": 2.336,
+      "DE 10Y": 2.483,
+      "UK 2Y": 4.174,
+      "UK 10Y": 4.236,
+      "JP 10Y": 0.946
     },
     "equities": {
       "S&P 500 fut": 5238.5,
@@ -188,12 +225,12 @@
       "Hang Seng fut": 18560.0
     },
     "commodities": {
-      "Brent": 87.40,
+      "Brent": 87.4,
       "WTI": 83.65,
-      "Gold": 2945.30,
+      "Gold": 2945.3,
       "Silver": 34.18,
       "Copper LME 3m": 9820.0,
-      "Iron Ore SGX": 116.40
+      "Iron Ore SGX": 116.4
     },
     "as_of": "06:42 GMT"
   },
@@ -220,18 +257,58 @@
       ]
     },
     "key_takeaways": [
-      { "rank": 1, "text": "CPI is the binary — base case 3.1% headline / +0.3% core. Anything else re-prices the curve." },
-      { "rank": 2, "text": "Front-end USD rates 22bp above Dec-26 OIS — cheap on a soft surprise." },
-      { "rank": 3, "text": "EUR/USD 1.0890 broken; 1.0820 the next operative level." },
-      { "rank": 4, "text": "FOMC minutes the secondary binary at 19:00 — patient language is consensus." },
-      { "rank": 5, "text": "JPY-call skew rebuilt; street hedging soft-CPI USD reversal via topside." }
+      {
+        "rank": 1,
+        "text": "CPI is the binary — base case 3.1% headline / +0.3% core. Anything else re-prices the curve."
+      },
+      {
+        "rank": 2,
+        "text": "Front-end USD rates 22bp above Dec-26 OIS — cheap on a soft surprise."
+      },
+      {
+        "rank": 3,
+        "text": "EUR/USD 1.0890 broken; 1.0820 the next operative level."
+      },
+      {
+        "rank": 4,
+        "text": "FOMC minutes the secondary binary at 19:00 — patient language is consensus."
+      },
+      {
+        "rank": 5,
+        "text": "JPY-call skew rebuilt; street hedging soft-CPI USD reversal via topside."
+      }
     ],
     "desk_priorities": [
-      { "rank": 1, "title": "CPI print 13:30 GMT", "body": "Primary risk event. Pre-positioned via EUR/USD short.", "timing": "13:30 GMT" },
-      { "rank": 2, "title": "FOMC minutes 19:00 GMT", "body": "Secondary binary. Watch patient-language references.", "timing": "19:00 GMT" },
-      { "rank": 3, "title": "PM Starmer PMQs 12:00 LDN", "body": "GBP tail. Fiscal-rule softening sells front-end Gilt.", "timing": "12:00 GMT" },
-      { "rank": 4, "title": "ECB Schnabel 10:00 GMT", "body": "Hawkish QT-pace language lifts EUR.", "timing": "10:00 GMT" },
-      { "rank": 5, "title": "10Y Treasury auction 17:00", "body": "Indirect bid critical. Tail risk into 10y supply.", "timing": "17:00 GMT" }
+      {
+        "rank": 1,
+        "title": "CPI print 13:30 GMT",
+        "body": "Primary risk event. Pre-positioned via EUR/USD short.",
+        "timing": "13:30 GMT"
+      },
+      {
+        "rank": 2,
+        "title": "FOMC minutes 19:00 GMT",
+        "body": "Secondary binary. Watch patient-language references.",
+        "timing": "19:00 GMT"
+      },
+      {
+        "rank": 3,
+        "title": "PM Starmer PMQs 12:00 LDN",
+        "body": "GBP tail. Fiscal-rule softening sells front-end Gilt.",
+        "timing": "12:00 GMT"
+      },
+      {
+        "rank": 4,
+        "title": "ECB Schnabel 10:00 GMT",
+        "body": "Hawkish QT-pace language lifts EUR.",
+        "timing": "10:00 GMT"
+      },
+      {
+        "rank": 5,
+        "title": "10Y Treasury auction 17:00",
+        "body": "Indirect bid critical. Tail risk into 10y supply.",
+        "timing": "17:00 GMT"
+      }
     ],
     "risk_scenarios": [
       {
@@ -340,7 +417,11 @@
         "days_to_next": 30,
         "market_pricing": "38bp of cuts priced through Dec-26 · July cut prob 42%",
         "bias": "Hold, easing bias",
-        "upcoming_speakers": ["Williams (today)", "Powell (Thu)", "Jefferson (Fri)"],
+        "upcoming_speakers": [
+          "Williams (today)",
+          "Powell (Thu)",
+          "Jefferson (Fri)"
+        ],
         "policy_stance": "Hold, easing bias",
         "inflation_sensitivity": "High",
         "growth_sensitivity": "Medium",
@@ -361,7 +442,11 @@
         "days_to_next": 24,
         "market_pricing": "32bp of cuts priced through Dec-26",
         "bias": "Cutting · gradual",
-        "upcoming_speakers": ["Schnabel (today)", "Lagarde (Wed)", "Lane (Fri)"],
+        "upcoming_speakers": [
+          "Schnabel (today)",
+          "Lagarde (Wed)",
+          "Lane (Fri)"
+        ],
         "policy_stance": "Cutting · gradual",
         "inflation_sensitivity": "Medium",
         "growth_sensitivity": "High",
@@ -382,7 +467,10 @@
         "days_to_next": 38,
         "market_pricing": "26bp of cuts priced through Dec-26",
         "bias": "Patient normalisation",
-        "upcoming_speakers": ["Bailey (Thu)", "Pill (Fri)"],
+        "upcoming_speakers": [
+          "Bailey (Thu)",
+          "Pill (Fri)"
+        ],
         "policy_stance": "Patient normalisation",
         "inflation_sensitivity": "Medium",
         "growth_sensitivity": "High",
@@ -403,7 +491,9 @@
         "days_to_next": 39,
         "market_pricing": "12bp of hikes priced through Dec-26",
         "bias": "Patient normalisation",
-        "upcoming_speakers": ["Ueda (Fri)"],
+        "upcoming_speakers": [
+          "Ueda (Fri)"
+        ],
         "policy_stance": "Patient normalisation",
         "inflation_sensitivity": "Medium",
         "growth_sensitivity": "Medium",
@@ -424,7 +514,9 @@
         "days_to_next": 39,
         "market_pricing": "15bp of cuts priced through Dec-26",
         "bias": "Hold, easing bias",
-        "upcoming_speakers": ["Jordan (Thu)"],
+        "upcoming_speakers": [
+          "Jordan (Thu)"
+        ],
         "policy_stance": "Hold, easing bias",
         "inflation_sensitivity": "Low",
         "growth_sensitivity": "Medium",
@@ -447,12 +539,36 @@
         "one_month_atm": 6.4,
         "rr_25d": -0.21,
         "levels": [
-          { "label": "Resistance", "value": "1.0915", "note": "Asia high" },
-          { "label": "Resistance", "value": "1.0945", "note": "Daily-close reversal" },
-          { "label": "Pivot", "value": "1.0890", "note": "Broken o/n — now resistance" },
-          { "label": "Support", "value": "1.0860", "note": "Operative line" },
-          { "label": "Support", "value": "1.0820", "note": "50dma + measured target" },
-          { "label": "Support", "value": "1.0790", "note": "200dma" }
+          {
+            "label": "Resistance",
+            "value": "1.0915",
+            "note": "Asia high"
+          },
+          {
+            "label": "Resistance",
+            "value": "1.0945",
+            "note": "Daily-close reversal"
+          },
+          {
+            "label": "Pivot",
+            "value": "1.0890",
+            "note": "Broken o/n — now resistance"
+          },
+          {
+            "label": "Support",
+            "value": "1.0860",
+            "note": "Operative line"
+          },
+          {
+            "label": "Support",
+            "value": "1.0820",
+            "note": "50dma + measured target"
+          },
+          {
+            "label": "Support",
+            "value": "1.0790",
+            "note": "200dma"
+          }
         ],
         "note": "Clean break of 1.0890 in Asia. CTA models flipped short on close < 1.0900. Operative line is 1.0860; clean h-close below opens 1.0820. Topside capped at 1.0915. Pre-positioned short."
       },
@@ -465,11 +581,31 @@
         "one_month_atm": 8.1,
         "rr_25d": 0.34,
         "levels": [
-          { "label": "Resistance", "value": "153.00", "note": "Intervention watch zone" },
-          { "label": "Resistance", "value": "152.80", "note": "April spike high" },
-          { "label": "Pivot", "value": "152.50", "note": "Carry-positive through" },
-          { "label": "Support", "value": "151.80", "note": "1m vol stop" },
-          { "label": "Support", "value": "151.20", "note": "50dma" }
+          {
+            "label": "Resistance",
+            "value": "153.00",
+            "note": "Intervention watch zone"
+          },
+          {
+            "label": "Resistance",
+            "value": "152.80",
+            "note": "April spike high"
+          },
+          {
+            "label": "Pivot",
+            "value": "152.50",
+            "note": "Carry-positive through"
+          },
+          {
+            "label": "Support",
+            "value": "151.80",
+            "note": "1m vol stop"
+          },
+          {
+            "label": "Support",
+            "value": "151.20",
+            "note": "50dma"
+          }
         ],
         "note": "RR flipped JPY-call bid for first time since BoJ June. Convex topside cheap; we are long 1m 154 strike calls. Spot carry funds the premium through 152.50."
       },
@@ -482,10 +618,26 @@
         "one_month_atm": 7.2,
         "rr_25d": -0.18,
         "levels": [
-          { "label": "Resistance", "value": "1.2590", "note": "Asia high" },
-          { "label": "Pivot", "value": "1.2540", "note": "Holding into PMQs" },
-          { "label": "Support", "value": "1.2495", "note": "Pre-Q1 GDP zone" },
-          { "label": "Support", "value": "1.2480", "note": "April low" }
+          {
+            "label": "Resistance",
+            "value": "1.2590",
+            "note": "Asia high"
+          },
+          {
+            "label": "Pivot",
+            "value": "1.2540",
+            "note": "Holding into PMQs"
+          },
+          {
+            "label": "Support",
+            "value": "1.2495",
+            "note": "Pre-Q1 GDP zone"
+          },
+          {
+            "label": "Support",
+            "value": "1.2480",
+            "note": "April low"
+          }
         ],
         "note": "Heavy on the cross. EUR/GBP grinding back to 0.8540. Starmer's fiscal language at PMQs is the variable — softening sells front-end Gilt, sells cable."
       },
@@ -498,9 +650,21 @@
         "one_month_atm": 8.8,
         "rr_25d": -0.05,
         "levels": [
-          { "label": "Resistance", "value": "0.6620", "note": "Range top" },
-          { "label": "Support", "value": "0.6580", "note": "Range bottom" },
-          { "label": "Support", "value": "0.6555", "note": "200dma" }
+          {
+            "label": "Resistance",
+            "value": "0.6620",
+            "note": "Range top"
+          },
+          {
+            "label": "Support",
+            "value": "0.6580",
+            "note": "Range bottom"
+          },
+          {
+            "label": "Support",
+            "value": "0.6555",
+            "note": "200dma"
+          }
         ],
         "note": "Range-bound. Waiting on Q1 wage price index Wed. Risk-off bias on hot US CPI."
       },
@@ -513,9 +677,21 @@
         "one_month_atm": 5.6,
         "rr_25d": -0.08,
         "levels": [
-          { "label": "Resistance", "value": "0.9140", "note": "April high" },
-          { "label": "Pivot", "value": "0.9080", "note": "200dma" },
-          { "label": "Support", "value": "0.9020", "note": "SNB zone" }
+          {
+            "label": "Resistance",
+            "value": "0.9140",
+            "note": "April high"
+          },
+          {
+            "label": "Pivot",
+            "value": "0.9080",
+            "note": "200dma"
+          },
+          {
+            "label": "Support",
+            "value": "0.9020",
+            "note": "SNB zone"
+          }
         ],
         "note": "Driven by EUR/CHF dynamic. We are short EUR/CHF separately."
       }
@@ -563,17 +739,54 @@
       "us": "Pre-CPI quiet — S&P futures -0.15%, 10y +1.2bp at 4.45%. CPI at 13:30 the primary catalyst; 10y auction at 17:00; FOMC minutes at 19:00. Williams at 19:00 the first post-CPI Fed voice. NVDA earnings tonight a second-order catalyst — semis trading rich into the print."
     },
     "cross_asset": [
-      { "title": "Rates → FX", "body": "Front-end USD rates are the cleanest driver. 2y at 4.31% sits 22bp above Dec-26 OIS — the widest gap since March. The cleanest expression of a soft-CPI surprise is therefore receiving the 2y belly + EUR/USD recovery." },
-      { "title": "FX → Equities", "body": "JPY-cross reversal feeding Japan equity weakness. Nikkei -0.7% on the back of USD/JPY topside. For US equities, the dollar is a second-order driver — primary remains rates." },
-      { "title": "Commodities → FX", "body": "Brent backwardation intact at $1.20 1m-6m supporting CAD on the cross. USD/CAD 1.3722 the level to watch — any clean break of 1.3680 with sustained Brent strength opens 1.3580." },
-      { "title": "Rates → Equities", "body": "S&P 500 fwd P/E at 19.4x vs 10y at 4.45% gives an ERP of ~2.7%, in the bottom quintile of the past decade. Any further front-end re-pricing higher tests the duration tolerance of the index." }
+      {
+        "title": "Rates → FX",
+        "body": "Front-end USD rates are the cleanest driver. 2y at 4.31% sits 22bp above Dec-26 OIS — the widest gap since March. The cleanest expression of a soft-CPI surprise is therefore receiving the 2y belly + EUR/USD recovery."
+      },
+      {
+        "title": "FX → Equities",
+        "body": "JPY-cross reversal feeding Japan equity weakness. Nikkei -0.7% on the back of USD/JPY topside. For US equities, the dollar is a second-order driver — primary remains rates."
+      },
+      {
+        "title": "Commodities → FX",
+        "body": "Brent backwardation intact at $1.20 1m-6m supporting CAD on the cross. USD/CAD 1.3722 the level to watch — any clean break of 1.3680 with sustained Brent strength opens 1.3580."
+      },
+      {
+        "title": "Rates → Equities",
+        "body": "S&P 500 fwd P/E at 19.4x vs 10y at 4.45% gives an ERP of ~2.7%, in the bottom quintile of the past decade. Any further front-end re-pricing higher tests the duration tolerance of the index."
+      }
     ],
     "pull_stats": [
-      { "section": "fx", "value": "−0.39%", "tone": "neg", "label": "EUR/USD overnight · break of 1.0890" },
-      { "section": "regime", "value": "+22 bp", "tone": "warn", "label": "US 2y premium vs Dec-26 OIS" },
-      { "section": "vol", "value": "−0.21 RR", "tone": "neg", "label": "1m EUR/USD risk-reversal · EUR-put bid" },
-      { "section": "central-banks", "value": "38 bp", "tone": "neu", "label": "Fed cuts priced through Dec-26" },
-      { "section": "trades", "value": "7.5/10", "tone": "pos", "label": "Conviction · short EUR/USD into CPI" }
+      {
+        "section": "fx",
+        "value": "−0.39%",
+        "tone": "neg",
+        "label": "EUR/USD overnight · break of 1.0890"
+      },
+      {
+        "section": "regime",
+        "value": "+22 bp",
+        "tone": "warn",
+        "label": "US 2y premium vs Dec-26 OIS"
+      },
+      {
+        "section": "vol",
+        "value": "−0.21 RR",
+        "tone": "neg",
+        "label": "1m EUR/USD risk-reversal · EUR-put bid"
+      },
+      {
+        "section": "central-banks",
+        "value": "38 bp",
+        "tone": "neu",
+        "label": "Fed cuts priced through Dec-26"
+      },
+      {
+        "section": "trades",
+        "value": "7.5/10",
+        "tone": "pos",
+        "label": "Conviction · short EUR/USD into CPI"
+      }
     ],
     "risk_warnings": [
       {
@@ -615,19 +828,140 @@
     "geopolitical": {
       "narrative": "Geopolitical risk premium has compressed across the major axes over the past week. US-China trade dialogue remains constructive at the margin; Middle East tail risk has been priced out of front-month Brent (no headline premium currently). The G7 communiqué released earlier this week reaffirmed coordination on tariff harmonisation — a modest USD tailwind.",
       "regions": [
-        { "name": "US – China", "short": "USCH", "intensity": 32, "trend": "De-escalating", "headline": "Trade dialogue constructive; tariff framework stable", "detail": "Three rounds of working-level talks in April produced no breakdown. Treasury Sec Yellen's Bretton Woods remarks today the next signal." },
-        { "name": "Russia – Ukraine", "short": "RUUA", "intensity": 58, "trend": "Stable", "headline": "Frontline static; secondary sanctions enforcement up", "detail": "EU 14th sanctions package adopted last week; commodity flow disruptions priced into 1m Brent calendars." },
-        { "name": "Middle East", "short": "MENA", "intensity": 44, "trend": "De-escalating", "headline": "No new flashpoints; tanker traffic normalised", "detail": "Strait of Hormuz transit volumes at 6m highs. Brent geo premium ~$2/bbl, down from $5 in March." },
-        { "name": "Taiwan Strait", "short": "TWN", "intensity": 28, "trend": "Stable", "headline": "Routine PLA patrols; no new escalation", "detail": "No incremental signal. Watch is on the upcoming presidential cabinet confirmations." }
+        {
+          "name": "US – China",
+          "short": "USCH",
+          "intensity": 32,
+          "trend": "De-escalating",
+          "headline": "Trade dialogue constructive; tariff framework stable",
+          "detail": "Three rounds of working-level talks in April produced no breakdown. Treasury Sec Yellen's Bretton Woods remarks today the next signal."
+        },
+        {
+          "name": "Russia – Ukraine",
+          "short": "RUUA",
+          "intensity": 58,
+          "trend": "Stable",
+          "headline": "Frontline static; secondary sanctions enforcement up",
+          "detail": "EU 14th sanctions package adopted last week; commodity flow disruptions priced into 1m Brent calendars."
+        },
+        {
+          "name": "Middle East",
+          "short": "MENA",
+          "intensity": 44,
+          "trend": "De-escalating",
+          "headline": "No new flashpoints; tanker traffic normalised",
+          "detail": "Strait of Hormuz transit volumes at 6m highs. Brent geo premium ~$2/bbl, down from $5 in March."
+        },
+        {
+          "name": "Taiwan Strait",
+          "short": "TWN",
+          "intensity": 28,
+          "trend": "Stable",
+          "headline": "Routine PLA patrols; no new escalation",
+          "detail": "No incremental signal. Watch is on the upcoming presidential cabinet confirmations."
+        }
       ]
     },
     "provenance": [
-      { "section": "regime", "sources": ["Reuters", "Bloomberg", "ECB", "BoE", "Fed minutes"], "as_of": "06:42 GMT" },
-      { "section": "fx", "sources": ["Refinitiv", "EBS spot", "CFTC COT"], "as_of": "06:38 GMT" },
-      { "section": "calendar", "sources": ["Refinitiv econ", "Trading Economics"], "as_of": "06:30 GMT" },
-      { "section": "central-banks", "sources": ["Fed", "ECB", "BoE", "BoJ", "SNB"], "as_of": "06:25 GMT" },
-      { "section": "trades", "sources": ["Desk strategy", "Internal vol grid"], "as_of": "06:40 GMT" },
-      { "section": "geopolitical", "sources": ["Reuters", "AP", "FT", "internal monitoring"], "as_of": "06:20 GMT" }
+      {
+        "section": "regime",
+        "sources": [
+          "Reuters",
+          "Bloomberg",
+          "ECB",
+          "BoE",
+          "Fed minutes"
+        ],
+        "as_of": "06:42 GMT"
+      },
+      {
+        "section": "fx",
+        "sources": [
+          "Refinitiv",
+          "EBS spot",
+          "CFTC COT"
+        ],
+        "as_of": "06:38 GMT"
+      },
+      {
+        "section": "calendar",
+        "sources": [
+          "Refinitiv econ",
+          "Trading Economics"
+        ],
+        "as_of": "06:30 GMT"
+      },
+      {
+        "section": "central-banks",
+        "sources": [
+          "Fed",
+          "ECB",
+          "BoE",
+          "BoJ",
+          "SNB"
+        ],
+        "as_of": "06:25 GMT"
+      },
+      {
+        "section": "trades",
+        "sources": [
+          "Desk strategy",
+          "Internal vol grid"
+        ],
+        "as_of": "06:40 GMT"
+      },
+      {
+        "section": "geopolitical",
+        "sources": [
+          "Reuters",
+          "AP",
+          "FT",
+          "internal monitoring"
+        ],
+        "as_of": "06:20 GMT"
+      }
+    ],
+    "instruments_to_watch": [
+      {
+        "rank": 1,
+        "instrument": "EUR/USD",
+        "region": "G10 FX",
+        "why_today": "The cleanest read-through from the US CPI binary. Positioning into the print has rebuilt USD-long from real-money flows; the pair sits inside its recent trading range.",
+        "catalyst": "US CPI · April · 13:30 GMT · FOMC minutes 19:00 GMT",
+        "desk_focus": "Watch the reaction asymmetry around the print: a soft surprise reverses the week's USD-long quickly. Specific price levels not shown — Live market levels unavailable at generation time."
+      },
+      {
+        "rank": 2,
+        "instrument": "US 2Y Treasury",
+        "region": "US rates",
+        "why_today": "Front-end USD rates are the most direct expression of the CPI/FOMC binary. The 2Y has been trading above Dec-26 OIS for most of the past two weeks.",
+        "catalyst": "US CPI 13:30 GMT · 10Y auction 17:00 GMT · FOMC minutes 19:00 GMT",
+        "desk_focus": "Indirect bid into the 10Y supply is the auction-tail variable. Specific yield levels not shown — Live market levels unavailable at generation time."
+      },
+      {
+        "rank": 3,
+        "instrument": "USD/JPY",
+        "region": "G10 FX",
+        "why_today": "The 1m 25-delta risk reversal has rebuilt JPY-call bid for the first time since the BoJ June meeting, suggesting the street is hedging a soft-CPI USD reversal via topside.",
+        "catalyst": "US CPI · BoJ Ueda commentary later in the week",
+        "desk_focus": "Intervention-zone risk if the pair extends. MoF verbal-warning history kicks in above the recent range high."
+      },
+      {
+        "rank": 4,
+        "instrument": "Brent crude",
+        "region": "Energy",
+        "why_today": "Specs have cut length over the past two weeks per CFTC. Front-month backwardation is intact and the geopolitical headline premium has compressed.",
+        "catalyst": "EIA inventories · OPEC+ commentary · MENA headline flow",
+        "desk_focus": "Asymmetry on any geopolitical re-escalation. Specific price and curve levels not shown — Live market levels unavailable at generation time."
+      },
+      {
+        "rank": 5,
+        "instrument": "EUR/CHF",
+        "region": "G10 FX",
+        "why_today": "SNB tolerance for CHF strength is being tested at the lower end of the recent range. ECB minutes lean patient and Schnabel's QT framing today is the catalyst on the EUR leg.",
+        "catalyst": "ECB Schnabel 10:00 GMT · SNB Jordan later in the week",
+        "desk_focus": "Verbal-intervention risk from the SNB if the pair extends lower. Specific levels not shown — Live market levels unavailable at generation time."
+      }
     ]
   },
   "generation_source": "mock",
@@ -641,5 +975,7 @@
   "author": "Makor Securities · Macro & FX Desk",
   "published_at": "2026-05-12T06:42:00Z",
   "created_at": "2026-05-12T06:38:00Z",
-  "updated_at": "2026-05-12T06:42:00Z"
+  "updated_at": "2026-05-12T06:42:00Z",
+  "data_provenance": "demo",
+  "demo_disclosure": "Demo content — institutional template. Market levels shown in this briefing are illustrative for layout purposes only and are not sourced from live market data. Live data integration (Reuters/Bloomberg/EBS, CME FedWatch, CFTC COT, Cboe vol) lands in Phase 2."
 }

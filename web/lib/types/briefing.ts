@@ -48,6 +48,17 @@ export interface BriefingSummary {
   created_at: string;
 }
 
+/**
+ * Source-integrity flag — surfaces in the UI as a small disclosure when the
+ * briefing was not built from live market data. Drives the demo banner and
+ * future per-field source attribution.
+ *
+ *   "live"    — every numerical claim is backed by a connected source
+ *   "partial" — narrative is sourced; some specific levels are illustrative
+ *   "demo"    — Phase 1 template, market levels are illustrative only
+ */
+export type DataProvenance = "live" | "partial" | "demo";
+
 export interface BriefingRead {
   id: string;
   briefing_date: string;
@@ -74,6 +85,10 @@ export interface BriefingRead {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  // Source-integrity layer — optional for backward compat with the Python
+  // schema. When omitted, the renderer treats the briefing as "live".
+  data_provenance?: DataProvenance | null;
+  demo_disclosure?: string | null;
 }
 
 // ============================================================ INTELLIGENCE LAYER
@@ -93,6 +108,12 @@ export interface KeyTakeaway {
   text: string;
 }
 
+/**
+ * Legacy trade-idea shape — directive (entry/target/stop/conviction).
+ * Retained for backward compatibility with the Python schema and any
+ * existing briefings that still carry this shape. New briefings should
+ * populate `instruments_to_watch` (the observational shape) instead.
+ */
 export interface TradeIdea {
   rank: number;
   theme: string;
@@ -106,6 +127,27 @@ export interface TradeIdea {
   catalyst: string;
   rationale: string;
   vol_context: string;
+}
+
+/**
+ * Observational, non-directive instrument watch card.
+ *
+ *   - instrument:  the asset name (e.g. "EUR/USD" / "US 2Y Treasury")
+ *   - region:      optional grouping ("G10 FX" / "US rates" / "Energy")
+ *   - why_today:   2–3 sentence note on why the desk is monitoring this today
+ *   - catalyst:    the specific scheduled event or release
+ *   - desk_focus:  what desks are watching — signal markers / level zones
+ *
+ * Never carries entry/target/stop/conviction. Tone is monitoring, not
+ * recommending. Rendered as "Instruments to Watch" in the reader.
+ */
+export interface InstrumentWatch {
+  rank: number;
+  instrument: string;
+  region?: string | null;
+  why_today: string;
+  catalyst: string;
+  desk_focus: string;
 }
 
 export interface CentralBankItem {
@@ -235,6 +277,10 @@ export interface Intelligence {
   desk_priorities: DeskPriority[];
   risk_scenarios: RiskScenario[];
   trade_ideas: TradeIdea[];
+  // New observational shape. When present, the reader renders this in the
+  // "Instruments to Watch" section instead of trade_ideas. Optional for
+  // backward compat — Phase-1 mock + Phase-2 generator both populate it.
+  instruments_to_watch?: InstrumentWatch[];
   central_banks: CentralBankItem[];
   pair_commentary: PairCommentary[];
   positioning: PositioningNote[];
