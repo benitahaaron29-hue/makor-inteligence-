@@ -38,6 +38,7 @@ import type {
   SessionBreakdown as SessionBreakdownT,
   TradeIdea,
   InstrumentWatch,
+  Chart as ChartT,
   WhatChanged as WhatChangedT,
 } from "@/lib/types/briefing";
 
@@ -773,6 +774,90 @@ function PairCommentaryRow({ p }: { p: PairCommentary }) {
 
 // =================================================================== § 01 OVERNIGHT MOVERS
 
+function ChartCard({ chart }: { chart: ChartT }) {
+  const series = chart.series ?? [];
+  if (series.length < 2) return null;
+  const baseline = chart.baseline ?? null;
+  const min = Math.min(...series, baseline ?? Infinity);
+  const max = Math.max(...series, baseline ?? -Infinity);
+  const range = max - min || 1;
+  const W = 240;
+  const H = 60;
+  const pts = series
+    .map((v, i) => {
+      const x = (i / (series.length - 1)) * W;
+      const y = H - ((v - min) / range) * H;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+  const baselineY =
+    baseline !== null ? H - ((baseline - min) / range) * H : null;
+
+  return (
+    <figure className="chart-card">
+      <figcaption className="chart-card-head">
+        <span className="chart-card-title">{chart.title}</span>
+        {chart.subtitle ? (
+          <span className="chart-card-subtitle">{chart.subtitle}</span>
+        ) : null}
+      </figcaption>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="chart-card-svg"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={chart.title}
+      >
+        {baselineY !== null ? (
+          <line
+            x1="0"
+            y1={baselineY.toFixed(2)}
+            x2={W}
+            y2={baselineY.toFixed(2)}
+            stroke="currentColor"
+            strokeWidth="0.4"
+            strokeDasharray="2 3"
+            opacity="0.35"
+          />
+        ) : null}
+        <polyline
+          points={pts}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="chart-card-axis">
+        <span>
+          {chart.y_min_label ?? min.toFixed(2)}{" – "}
+          {chart.y_max_label ?? max.toFixed(2)}
+        </span>
+        <span>
+          {chart.x_start_label ?? ""}
+          {chart.x_start_label || chart.x_end_label ? " → " : null}
+          {chart.x_end_label ?? ""}
+        </span>
+      </div>
+      {chart.note ? <p className="chart-card-note">{chart.note}</p> : null}
+      {chart.data_source ? (
+        <p className="chart-card-source">{chart.data_source}</p>
+      ) : null}
+    </figure>
+  );
+}
+
+function ChartsBlock({ intel }: { intel: Intelligence | null }) {
+  const charts = intel?.charts ?? [];
+  if (charts.length === 0) return null;
+  return (
+    <div className="chart-grid" role="group" aria-label="Overnight visual context">
+      {charts.map((c) => <ChartCard key={c.rank} chart={c} />)}
+    </div>
+  );
+}
+
 function OvernightMovers({ briefing, intel }: { briefing: BriefingRead; intel: Intelligence | null }) {
   const seed = briefing.briefing_date;
   const snap = briefing.market_snapshot;
@@ -789,14 +874,17 @@ function OvernightMovers({ briefing, intel }: { briefing: BriefingRead; intel: I
 
   return (
     <>
+      <ChartsBlock intel={intel} />
+
       <p
         className="body-sm"
         style={{ color: "var(--text-secondary)", marginBottom: 10, maxWidth: "var(--layout-research-max-w)" }}
       >
-        <strong style={{ color: "var(--text-primary)" }}>Why it matters:</strong> the
-        overnight cluster reads risk-on but thin — leveraged USD-longs were trimmed,
-        commodity supply-premium re-priced, and front-end USTs caught a real-money bid.
-        These three legs only hold if CPI does not surprise to the upside.
+        <strong style={{ color: "var(--text-primary)" }}>What we watched:</strong>{" "}
+        a quiet overnight session. The cluster of moves was directionally
+        consistent — modest USD bid against the funders, front-end USD rates
+        firmer, commodities range-bound — but the magnitudes are not large.
+        Today's session reads on the CPI print.
       </p>
 
       <EmbeddedTable>

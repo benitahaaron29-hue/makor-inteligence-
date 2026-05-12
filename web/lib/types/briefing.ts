@@ -130,6 +130,37 @@ export interface TradeIdea {
 }
 
 /**
+ * One Bloomberg/GS-style minimalist chart attached to the briefing.
+ *
+ * The chart system is deliberately small. The reader supports up to ~4
+ * charts per briefing, each rendered as a single thin SVG line with
+ * min/max y-labels and start/end x-labels. No gridlines, no decorative
+ * gradients, no axis ticks, no legend. One narrative purpose per chart.
+ *
+ *   - kind: only "line" in v1; "area" / "bar" reserved for later
+ *   - series: y-values, evenly spaced in time
+ *   - baseline: optional reference line (e.g. previous close, zero,
+ *       OIS-implied rate). Rendered as a dashed horizontal rule.
+ *   - note: one short sentence stating WHY this chart is in the briefing
+ *   - data_source: source attribution string — "Bloomberg", "Refinitiv",
+ *       "CME FedWatch", or "Demo synthetic series" in Phase 1
+ */
+export interface Chart {
+  rank: number;
+  title: string;
+  subtitle?: string | null;
+  kind: "line";
+  series: number[];
+  baseline?: number | null;
+  y_min_label?: string | null;
+  y_max_label?: string | null;
+  x_start_label?: string | null;
+  x_end_label?: string | null;
+  note?: string | null;
+  data_source?: string | null;
+}
+
+/**
  * Observational, non-directive instrument watch card.
  *
  *   - instrument:  the asset name (e.g. "EUR/USD" / "US 2Y Treasury")
@@ -281,6 +312,9 @@ export interface Intelligence {
   // "Instruments to Watch" section instead of trade_ideas. Optional for
   // backward compat — Phase-1 mock + Phase-2 generator both populate it.
   instruments_to_watch?: InstrumentWatch[];
+  // Up to ~4 Bloomberg-style minimal line charts rendered at the top of
+  // § 01 Overnight Movers. Optional — older briefings render without them.
+  charts?: Chart[];
   central_banks: CentralBankItem[];
   pair_commentary: PairCommentary[];
   positioning: PositioningNote[];

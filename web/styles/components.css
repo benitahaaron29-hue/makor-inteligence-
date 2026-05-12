@@ -2963,6 +2963,125 @@
   flex: 1;
 }
 
+/* =============================================================================
+   CHART GRID — Bloomberg-minimal SVG line charts.
+
+   Three (or up to four) compact cards in a horizontal grid, rendered at the
+   top of § 01 Overnight Movers. One thin line per chart, no gridlines, no
+   axis ticks, no legend, no decorative gradients. Title above, axis labels
+   below (min/max y · start/end time), italic narrative note, source caption.
+
+   The SVG renders in `currentColor`, set by `.chart-card-svg` to a Makor
+   accent on screen and to deep navy on print/export.
+   ============================================================================= */
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 0 22px;
+  max-width: var(--layout-research-max-w);
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.chart-card {
+  margin: 0;
+  padding: 12px 14px 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-sunken);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.chart-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.chart-card-title {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.chart-card-subtitle {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.chart-card-svg {
+  display: block;
+  width: 100%;
+  height: 52px;
+  color: var(--makor-300);
+}
+.chart-card-axis {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+.chart-card-note {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  line-height: 14px;
+  font-style: italic;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
+.chart-card-source {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+@media (max-width: 960px) {
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Print/export — same minimal aesthetic on paper. Single hairline border,
+   single deep-navy line, all greys above the WCAG-AA threshold against white. */
+@media print {
+  .chart-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8pt !important;
+    margin: 0 0 12pt !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .chart-card {
+    background: #FFFFFF !important;
+    border: 0.5pt solid #C7DAFF !important;
+    padding: 8pt 10pt 6pt !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .chart-card-svg { color: #1F56D1 !important; height: 38pt !important; }
+  .chart-card-title    { color: #08111F !important; }
+  .chart-card-subtitle { color: #4B5B72 !important; }
+  .chart-card-axis     { color: #4B5B72 !important; font-size: 8pt !important; }
+  .chart-card-note     { color: #233452 !important; font-size: 9pt !important; line-height: 12pt !important; }
+  .chart-card-source   { color: #4B5B72 !important; font-size: 7.5pt !important; }
+}
+
 /* Print/export — keep the disclosure visible but lighten the chrome so it
    reads as a footnote rather than an alert. All colors deep enough for
    WCAG-AA against white paper. */
