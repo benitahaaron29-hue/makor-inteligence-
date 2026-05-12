@@ -1,21 +1,28 @@
 /**
- * Demo-mode plumbing.
+ * Demo-mode plumbing — fully isomorphic, Vercel-build-safe.
  *
- * The platform can run in two configurations:
+ * Mocks are statically imported as JSON modules so the bundler inlines them
+ * into whichever bundle needs them (server, edge, or client). There is no
+ * fs / path / node:* import anywhere in the demo path, and no reliance on
+ * process.cwd() — which means the build is identical locally, on Vercel,
+ * and in every Next.js runtime.
  *
- *   1. Live   — NEXT_PUBLIC_API_ORIGIN points at a running data service.
- *                API calls hit the upstream; failures bubble up to the UI.
- *   2. Demo   — NEXT_PUBLIC_DEMO_MODE=true, or the data service is
- *                unreachable. Every fetch falls back to bundled JSON
- *                under web/public/mock/ and the UI never surfaces a
- *                connection error to the viewer.
- *
- * The loader works on both server (Node fs) and client (HTTP fetch) so the
- * same call sites can be used from Server Components, Route Handlers, and
- * Client Components.
+ *   isDemoMode()       — true when NEXT_PUBLIC_DEMO_MODE === "true"
+ *   loadMock<T>(name)  — returns the bundled JSON for the named mock
+ *   withMockFallback() — call live first, fall back to mock on failure
  */
 
-const isServer = typeof window === "undefined";
+import latestBriefingMock from "./mocks/latest-briefing.json";
+import recentBriefingsMock from "./mocks/recent-briefings.json";
+import sourcesMock from "./mocks/sources.json";
+
+const REGISTRY = {
+  "latest-briefing.json": latestBriefingMock,
+  "recent-briefings.json": recentBriefingsMock,
+  "sources.json": sourcesMock,
+} as const;
+
+export type MockName = keyof typeof REGISTRY;
 
 /** True when the deployment is explicitly running in demo mode. */
 export function isDemoMode(): boolean {
@@ -23,55 +30,23 @@ export function isDemoMode(): boolean {
 }
 
 /**
- * Resolve and cache a JSON mock from web/public/mock/.
- * Server-side reads from disk; client-side fetches the same file via HTTP
- * (it's a static asset, served by Next.js without round-tripping the API).
+ * Resolve a bundled mock by filename. Marked async so call sites stay
+ * shape-compatible with the previous fs-backed implementation.
  */
-const CACHE: Record<string, unknown> = {};
-
 export async function loadMock<T>(filename: string): Promise<T> {
-  if (CACHE[filename] !== undefined) return CACHE[filename] as T;
-
-  let parsed: unknown;
-
-  if (isServer) {
-    const { readFile } = await import("node:fs/promises");
-    const path = await import("node:path");
-    const candidates = [
-      path.join(process.cwd(), "public", "mock", filename),
-      path.join(process.cwd(), "web", "public", "mock", filename),
-    ];
-    let lastErr: unknown = null;
-    for (const p of candidates) {
-      try {
-        const text = await readFile(p, "utf8");
-        parsed = JSON.parse(text);
-        break;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    if (parsed === undefined) {
-      throw new Error(`mock not found: ${filename} (${String(lastErr)})`);
-    }
-  } else {
-    const res = await fetch(`/mock/${filename}`, { cache: "force-cache" });
-    if (!res.ok) throw new Error(`mock fetch ${res.status}: ${filename}`);
-    parsed = await res.json();
+  const entry = REGISTRY[filename as MockName];
+  if (entry === undefined) {
+    throw new Error(`unknown mock: ${filename}`);
   }
-
-  CACHE[filename] = parsed;
-  return parsed as T;
+  // Cast through unknown — the JSON modules are typed as the literal
+  // shapes inferred by TS, but call sites want their domain types.
+  return entry as unknown as T;
 }
 
 /**
- * Try a live API call first; on any failure, fall back to the mock.
- * Used by the briefings + sources fetchers so the UI never sees a
- * connection error in demo or partial-outage scenarios.
- *
- * If `force` is true (or `isDemoMode()` is true), skip the live call
- * entirely — useful for production demo deployments where there is no
- * upstream and trying to reach one just adds latency + console noise.
+ * Try a live API call first; on any failure (or when demo mode is forced),
+ * fall back to the mock. Used by the briefings and sources fetchers so
+ * the UI never surfaces a connection error to a demo viewer.
  */
 export async function withMockFallback<T>(
   liveFn: () => Promise<T>,

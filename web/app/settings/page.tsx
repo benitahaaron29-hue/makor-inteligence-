@@ -61,7 +61,7 @@ export default async function SettingsPage() {
         { label: "Mode",     value: demo ? "Bundled mock JSON" : "Live API" },
         { label: "Health",   value: demo ? "Bundled" : (apiHealth === "ok" ? "Reachable" : "Unreachable"), status: apiHealth },
         { label: "Database", value: demo ? "Static fixtures" : "Managed Postgres" },
-        { label: "API root", value: demo ? "/mock/*.json (static)" : "/api/v1" },
+        { label: "API root", value: demo ? "Bundled JSON (static imports)" : "/api/v1" },
       ],
     },
     {
