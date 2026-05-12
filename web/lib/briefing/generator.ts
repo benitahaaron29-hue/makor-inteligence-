@@ -489,6 +489,36 @@ async function buildIntelligence(
 
 const GENERATOR_VERSION = "auto-vercel-2026.05";
 
+// Module-level invocation counter. Vercel routes requests to different
+// serverless function instances; each instance has its own copy of this
+// state. When /api/diag returns generator.call_count: 0, the operator
+// knows that THIS specific instance has never run the briefing
+// generator — which means the diagnostics for the downstream services
+// (narrative, headlines, calendar, CB) will also be empty for this
+// instance regardless of how many times other instances ran them.
+let GENERATOR_CALL_COUNT = 0;
+let GENERATOR_LAST_CALL_AT: string | null = null;
+let GENERATOR_LAST_DURATION_MS: number | null = null;
+
+export interface GeneratorDiagnostics {
+  call_count: number;
+  last_call_at: string | null;
+  last_duration_ms: number | null;
+}
+
+export function generatorDiagnostics(): GeneratorDiagnostics {
+  return {
+    call_count: GENERATOR_CALL_COUNT,
+    last_call_at: GENERATOR_LAST_CALL_AT,
+    last_duration_ms: GENERATOR_LAST_DURATION_MS,
+  };
+}
+
+function genLog(event: string, detail: Record<string, unknown> = {}): void {
+  // eslint-disable-next-line no-console
+  console.log(`[generator] ${event}`, detail);
+}
+
 export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
   if (isDemoMode()) {
     // Demo mode is handled at the call-site (briefingsApi serves the bundled
@@ -501,16 +531,32 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     throw new Error(`generateBriefing: invalid date "${dateIso}"`);
   }
 
+  const t0 = Date.now();
+  GENERATOR_CALL_COUNT += 1;
+  GENERATOR_LAST_CALL_AT = new Date().toISOString();
+  const callNumber = GENERATOR_CALL_COUNT;
+  genLog("starting", { date: dateIso, call_number: callNumber });
+
   const slugs = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
 
   // Stage 1 — fetch the structured data first. The narrative service
   // depends on this output; we can't kick it off until the data is in.
+  const tFetch = Date.now();
   const [quotes, calendarEvents, headlines, cbEvents] = await Promise.all([
     Promise.all(slugs.map((s) => getQuote(s))),
     getCalendarEvents(),
     getBriefingHeadlines(10),
     getBriefingCBEvents(8),
   ]);
+  genLog("data-fetched", {
+    call_number: callNumber,
+    took_ms: Date.now() - tFetch,
+    quotes: quotes.length,
+    quotes_with_value: quotes.filter((q) => q.value !== null).length,
+    calendar_events: calendarEvents.length,
+    headlines: headlines.length,
+    cb_events: cbEvents.length,
+  });
 
   const byInstrument = new Map<string, MarketQuote>();
   for (const q of quotes) byInstrument.set(q.instrument, q);
@@ -520,12 +566,22 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
   // configured, or when the LLM call / validation fails. In every
   // null case the buildIntelligence step falls back to its existing
   // template content for the affected fields.
+  const tSynth = Date.now();
   const narrative = await synthesise({
     date_iso: dateIso,
     quotes,
     calendar: calendarEvents,
     headlines,
     cb_events: cbEvents,
+  });
+  const narrDiagSnap = narrativeDiagnostics();
+  genLog("narrative-resolved", {
+    call_number: callNumber,
+    took_ms: Date.now() - tSynth,
+    narrative_present: !!narrative,
+    last_result: narrDiagSnap.last_result,
+    last_error: narrDiagSnap.last_error,
+    field_counts: narrDiagSnap.last_field_counts,
   });
 
   const intelligence = await buildIntelligence(byInstrument, calendarEvents, headlines, cbEvents, narrative);
@@ -575,7 +631,7 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
             ? `Anthropic Claude — API call failed (${narrDiag.last_error}); using template fallback`
             : "Anthropic Claude — not yet called";
 
-  return {
+  const briefing: BriefingRead = {
     id: `auto-${dateIso}`,
     briefing_date: dateIso,
     briefing_type: "morning_fx_macro",
@@ -636,4 +692,13 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
       ? null
       : "Live market data, calendar, headlines, and central-bank activity all sourced from connected feeds. Narrative synthesis is template content until ANTHROPIC_API_KEY is configured on the server. Per-section source attribution is shown in the Provenance footer of each block.",
   };
+
+  GENERATOR_LAST_DURATION_MS = Date.now() - t0;
+  genLog("done", {
+    call_number: callNumber,
+    took_ms: GENERATOR_LAST_DURATION_MS,
+    narrative_present: !!narrative,
+    field_counts: narrDiagSnap.last_field_counts,
+  });
+  return briefing;
 }

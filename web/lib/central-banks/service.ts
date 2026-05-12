@@ -44,11 +44,22 @@ const DIAG: DiagState = {
   total_in_window: 0,
 };
 
+function cbLog(event: string, detail: Record<string, unknown> = {}): void {
+  // eslint-disable-next-line no-console
+  console.log(`[cb] ${event}`, detail);
+}
+
 export async function getCBEvents(): Promise<CBEvent[]> {
-  if (isDemoMode()) return [];
+  if (isDemoMode()) {
+    cbLog("skipped:demo-mode");
+    return [];
+  }
 
   const cached = cacheGet<CBEvent[]>(CACHE_KEY);
-  if (cached) return cached;
+  if (cached) {
+    cbLog("cache-hit", { count: cached.length });
+    return cached;
+  }
 
   // Build a flat list of (spec, feedUrl) so we can fetch every feed in
   // parallel — not just one feed per bank.
@@ -59,6 +70,8 @@ export async function getCBEvents(): Promise<CBEvent[]> {
     for (const f of spec.feeds) jobs.push({ spec, url: f.url });
   }
 
+  cbLog("fetching", { feeds: jobs.length, banks: ALL_BANKS.length });
+  const tStart = Date.now();
   const results = await Promise.allSettled(jobs.map((j) => fetchCBFeed(j.spec, j.url)));
   const all: CBEvent[] = [];
   const perFeed: PerFeedStatus[] = [];
@@ -100,6 +113,14 @@ export async function getCBEvents(): Promise<CBEvent[]> {
   DIAG.per_feed = perFeed;
   DIAG.total_collected = all.length;
   DIAG.total_in_window = final.length;
+
+  cbLog("fetched", {
+    took_ms: Date.now() - tStart,
+    per_feed: perFeed.map((p) => ({ bank: p.bank, ok: p.ok, count: p.count, error: p.error })),
+    total_collected: all.length,
+    after_dedupe: deduped.length,
+    in_window: final.length,
+  });
 
   return final;
 }

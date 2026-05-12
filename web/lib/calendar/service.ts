@@ -123,15 +123,29 @@ function plusDaysIso(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+function calLog(event: string, detail: Record<string, unknown> = {}): void {
+  // eslint-disable-next-line no-console
+  console.log(`[calendar] ${event}`, detail);
+}
+
 /** Returns the desk's calendar — sourced, classified, sorted. */
 export async function getCalendarEvents(): Promise<CalendarEvent[]> {
-  if (isDemoMode()) return [];
+  if (isDemoMode()) {
+    calLog("skipped:demo-mode");
+    return [];
+  }
 
   const cached = cacheGet<CalendarEvent[]>(CACHE_KEY);
-  if (cached) return cached;
+  if (cached) {
+    calLog("cache-hit", { count: cached.length });
+    return cached;
+  }
 
   const d1 = todayIsoUtc();
   const d2 = plusDaysIso(d1, DEFAULT_WINDOW_DAYS);
+
+  calLog("fetching", { d1, d2, countries: DEFAULT_DESK_COUNTRIES.length, key_status: DIAG.key_status });
+  const tStart = Date.now();
 
   let raw: RawTeEvent[];
   try {
@@ -144,6 +158,7 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
     DIAG.last_error = err instanceof Error ? err.message : String(err);
     DIAG.last_fetched_at = new Date().toISOString();
     DIAG.last_count = 0;
+    calLog("fetch-failed", { error: DIAG.last_error });
     return [];
   }
 
@@ -160,6 +175,13 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
   DIAG.last_error = null;
   DIAG.last_fetched_at = new Date().toISOString();
   DIAG.last_count = events.length;
+
+  calLog("fetched", {
+    took_ms: Date.now() - tStart,
+    raw_count: raw.length,
+    normalised_count: events.length,
+    key_status: DIAG.key_status,
+  });
 
   return events;
 }

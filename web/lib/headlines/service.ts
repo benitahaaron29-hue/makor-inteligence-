@@ -60,12 +60,25 @@ const DIAG: DiagState = {
   total_published: 0,
 };
 
+function hlLog(event: string, detail: Record<string, unknown> = {}): void {
+  // eslint-disable-next-line no-console
+  console.log(`[headlines] ${event}`, detail);
+}
+
 export async function getHeadlines(): Promise<Headline[]> {
-  if (isDemoMode()) return [];
+  if (isDemoMode()) {
+    hlLog("skipped:demo-mode");
+    return [];
+  }
 
   const cached = cacheGet<Headline[]>(CACHE_KEY);
-  if (cached) return cached;
+  if (cached) {
+    hlLog("cache-hit", { count: cached.length });
+    return cached;
+  }
 
+  hlLog("fetching", { feeds: FEEDS.length });
+  const tStart = Date.now();
   const results = await Promise.allSettled(FEEDS.map((f) => fetchFeed(f)));
 
   const all: Headline[] = [];
@@ -119,6 +132,15 @@ export async function getHeadlines(): Promise<Headline[]> {
   DIAG.per_feed = perFeed;
   DIAG.total_collected = all.length;
   DIAG.total_published = final.length;
+
+  hlLog("fetched", {
+    took_ms: Date.now() - tStart,
+    per_feed: perFeed.map((p) => ({ source: p.source, ok: p.ok, count: p.count, error: p.error })),
+    total_collected: all.length,
+    after_dedupe: deduped.length,
+    after_classify_filter: classified.length,
+    published: final.length,
+  });
 
   return final;
 }
