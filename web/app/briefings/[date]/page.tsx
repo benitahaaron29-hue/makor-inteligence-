@@ -17,6 +17,11 @@ import { sourcesApi, type SourceView } from "@/lib/api/sources";
 import type { BriefingRead } from "@/lib/types/briefing";
 
 export const dynamic = "force-dynamic";
+// Cold-cache narrative synthesis can take 5–15s. Give the function a
+// 60s budget so Vercel doesn't kill it before Claude responds — without
+// this declaration Hobby-plan deployments default to 10s and silently
+// fall back to the template, which is the bug pattern we're patching.
+export const maxDuration = 60;
 
 interface BriefingDetailPageProps {
   params: { date: string };

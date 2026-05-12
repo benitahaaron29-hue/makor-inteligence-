@@ -61,8 +61,44 @@ export interface NarrativeOutput {
 }
 
 /**
+ * Per-field outcome at the briefing-render layer. "llm" means the
+ * narrative service produced usable content for this field and the
+ * generator injected it; "template" means the generator fell back to
+ * the existing template string (because the narrative was null OR
+ * the LLM returned "source data insufficient" for that field).
+ */
+export type FieldSource = "llm" | "template";
+
+/**
+ * The full list of fields the narrative layer can populate. Used both
+ * for the field-source map and as the audit surface for /api/diag.
+ */
+export const NARRATIVE_FIELDS = [
+  "executive_summary",
+  "strategist_view.headline",
+  "strategist_view.body",
+  "macro_overview.opening",
+  "macro_overview.whats_moving",
+  "macro_overview.rates_view",
+  "macro_overview.cross_asset_thesis",
+  "what_changed.summary",
+  "fx_commentary",
+  "rates_commentary",
+  "equities_commentary",
+  "commodities_commentary",
+] as const;
+
+export type NarrativeField = typeof NARRATIVE_FIELDS[number];
+
+/**
  * Diagnostic info exposed via /api/diag and /api/narrative for operator
  * introspection. Never carries the API key or any user data.
+ *
+ * field_sources: per-field "llm" | "template" map computed by the
+ * service after validation. Lets an operator see at a glance which
+ * sections came from Claude vs the fallback. When the LLM has not yet
+ * been called this turn, the map carries the last computed values
+ * (handy for verifying the pipeline after a successful render).
  */
 export interface NarrativeDiagnostics {
   last_call_at: string | null;
@@ -74,4 +110,12 @@ export interface NarrativeDiagnostics {
   last_output_tokens: number | null;
   /** True when a real ANTHROPIC_API_KEY is configured on the server. */
   key_configured: boolean;
+  /** Per-field outcome for the most recent narrative pass. */
+  last_field_sources: Record<NarrativeField, FieldSource> | null;
+  /** Counts of fields that landed in each bucket. Quick "did the LLM do anything?" gauge. */
+  last_field_counts: { llm: number; template: number } | null;
+  /** Hash of the most recent context document (for cache-key sanity). */
+  last_context_hash: string | null;
+  /** When the cache returned a hit, what was the cached entry's last_result. */
+  last_cache_hit_origin: string | null;
 }

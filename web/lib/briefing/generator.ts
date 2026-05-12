@@ -46,7 +46,7 @@ import type { Headline } from "@/lib/headlines/types";
 import { getBriefingCBEvents, cbDiagnostics } from "@/lib/central-banks/service";
 import { CB_SPECS, ALL_BANKS } from "@/lib/central-banks/feeds";
 import type { CBEvent } from "@/lib/central-banks/types";
-import { synthesise, narrativeDiagnostics } from "@/lib/narrative/service";
+import { synthesise, narrativeDiagnostics, isLLMFieldUsable } from "@/lib/narrative/service";
 import type { NarrativeOutput } from "@/lib/narrative/types";
 
 // ============================================================================
@@ -333,15 +333,17 @@ function buildCentralBanks(cbEvents: CBEvent[]): CentralBankItem[] {
 /**
  * Resolve a narrative field, falling back to a template when the LLM
  * either declined to write the section ("source data insufficient") or
- * was unavailable entirely (null narrative). The narrative never
- * extends the template; it replaces it field-by-field when present.
+ * was unavailable entirely (null narrative). Uses the shared
+ * `isLLMFieldUsable` helper so the generator and the narrative
+ * service's field-source diagnostic agree on what counts as "usable".
+ *
+ * Critically, this matcher tolerates punctuation + hyphenation variants
+ * the LLM might emit ("Source data insufficient.", "source-data-insufficient",
+ * "Insufficient data") — strict equality on a single literal was the
+ * silent leak in the previous iteration.
  */
 function orTemplate(llmValue: string | undefined, templateValue: string): string {
-  if (!llmValue) return templateValue;
-  const t = llmValue.trim();
-  if (t.length === 0) return templateValue;
-  if (t.toLowerCase() === "source data insufficient") return templateValue;
-  return llmValue;
+  return isLLMFieldUsable(llmValue) ? (llmValue as string) : templateValue;
 }
 
 async function buildIntelligence(
@@ -611,6 +613,18 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
       cb_sources: ["Federal Reserve", "ECB", "BoE", "BoJ", "SNB"],
       narrative_model: narrative ? narrDiag.last_model : null,
       narrative_result: narrDiag.last_result,
+      narrative_key_configured: narrDiag.key_configured,
+      narrative_last_error: narrDiag.last_error,
+      narrative_input_tokens: narrDiag.last_input_tokens,
+      narrative_output_tokens: narrDiag.last_output_tokens,
+      narrative_latency_ms: narrDiag.last_latency_ms,
+      narrative_context_hash: narrDiag.last_context_hash,
+      // Per-field "llm" vs "template" map — the single-glance audit
+      // surface. If every field shows "template" while key_configured
+      // is true, the LLM call or validation is failing; check
+      // narrative_last_error.
+      narrative_field_sources: narrDiag.last_field_sources,
+      narrative_field_counts: narrDiag.last_field_counts,
     },
     desk: "Macro & FX",
     author: "Makor Securities · Macro & FX Desk",

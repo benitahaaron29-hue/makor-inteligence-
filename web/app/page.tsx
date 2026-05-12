@@ -3,6 +3,12 @@ import { briefingsApi } from "@/lib/api/briefings";
 import type { BriefingRead } from "@/lib/types/briefing";
 
 export const dynamic = "force-dynamic";
+// Anthropic Sonnet 4.6 typically returns in 5–15s; on a cold cache the
+// briefing generator needs longer than Vercel's default 10s function
+// budget (Hobby plan default; Pro plan default is already 60). Setting
+// maxDuration here guarantees the LLM call has room to complete before
+// Vercel kills the function and the user sees a templated render.
+export const maxDuration = 60;
 
 /**
  * Makor Intelligence Terminal — institutional entry surface.

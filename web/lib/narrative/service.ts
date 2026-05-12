@@ -1,18 +1,20 @@
 /**
  * Narrative service — orchestrates: context → LLM → validate → cache.
  *
- * Flow:
- *   1. Demo-mode guard: return null (caller uses template).
- *   2. No API key guard: return null + log diagnostic.
- *   3. Build the context document from input data.
- *   4. Check cache keyed by context.hash. 30-min TTL.
- *   5. Call Claude with the strict system prompt + context.
- *   6. Validate the response. On any failure, return null.
- *   7. Cache the validated output and return it.
+ * Flow (verbose console.log at each step so Vercel Function Logs show
+ * the exact failure mode without needing to redeploy):
  *
- * The caller (generator) treats `null` as "use the existing template
- * content for the affected fields". This guarantees the briefing always
- * renders — the LLM is an upgrade, never a hard dependency.
+ *   1. Demo-mode guard: return null + log "demo-mode".
+ *   2. No-key guard: return null + log "no-key".
+ *   3. Build context. Log context hash + counts.
+ *   4. Cache check. If hit: log "cache" + return.
+ *   5. Call Claude. Log latency + token usage.
+ *   6. Validate. Log "ok" or "validate-fail" + reason.
+ *   7. Cache and return; OR fall back to null + log reason.
+ *
+ * Diagnostics carry a per-field "llm" | "template" map computed after
+ * validation. This is the operator's single-glance view of whether the
+ * LLM actually populated each section.
  */
 
 import { cacheGet, cacheSet } from "@/lib/market/cache";
@@ -21,7 +23,13 @@ import { buildContext, type ContextInput } from "./context";
 import { NARRATIVE_SYSTEM_PROMPT, buildUserMessage } from "./prompt";
 import { callClaude, llmKeyConfigured, llmModel } from "./llm";
 import { validateNarrative } from "./validator";
-import type { NarrativeOutput, NarrativeDiagnostics } from "./types";
+import {
+  NARRATIVE_FIELDS,
+  type FieldSource,
+  type NarrativeField,
+  type NarrativeOutput,
+  type NarrativeDiagnostics,
+} from "./types";
 
 const CACHE_TTL_SECONDS = 30 * 60; // 30 min
 const CACHE_KEY_PREFIX = "narrative::";
@@ -37,9 +45,16 @@ const DIAG: NarrativeDiagnostics = {
   last_input_tokens: null,
   last_output_tokens: null,
   key_configured: llmKeyConfigured(),
+  last_field_sources: null,
+  last_field_counts: null,
+  last_context_hash: null,
+  last_cache_hit_origin: null,
 };
 
-function record(result: NonNullable<NarrativeDiagnostics["last_result"]>, error: string | null) {
+function record(
+  result: NonNullable<NarrativeDiagnostics["last_result"]>,
+  error: string | null,
+) {
   DIAG.last_call_at = new Date().toISOString();
   DIAG.last_result = result;
   DIAG.last_error = error;
@@ -47,28 +62,129 @@ function record(result: NonNullable<NarrativeDiagnostics["last_result"]>, error:
 }
 
 /**
+ * Decide whether a single string from the LLM is usable.
+ * Rejects empty / whitespace / "source data insufficient" (case-
+ * insensitive, with tolerance for trailing punctuation and hyphenation).
+ */
+export function isLLMFieldUsable(value: string | undefined | null): boolean {
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return false;
+  const norm = trimmed
+    .toLowerCase()
+    .replace(/[-_]+/g, " ")     // "source-data-insufficient" → "source data insufficient"
+    .replace(/[.!?]+$/g, "")     // trailing punctuation
+    .replace(/\s+/g, " ")
+    .trim();
+  if (
+    norm === "source data insufficient" ||
+    norm === "source data is insufficient" ||
+    norm === "insufficient data" ||
+    norm === "insufficient context" ||
+    norm === "data unavailable" ||
+    norm === "n a" || norm === "na"
+  ) return false;
+  return true;
+}
+
+function getNarrativeField(n: NarrativeOutput, path: NarrativeField): string {
+  const parts = path.split(".");
+  let cur: unknown = n;
+  for (const p of parts) {
+    if (typeof cur !== "object" || cur === null) return "";
+    cur = (cur as Record<string, unknown>)[p];
+  }
+  return typeof cur === "string" ? cur : "";
+}
+
+function computeFieldSources(
+  narrative: NarrativeOutput | null,
+): Record<NarrativeField, FieldSource> {
+  const map = {} as Record<NarrativeField, FieldSource>;
+  if (!narrative) {
+    for (const f of NARRATIVE_FIELDS) map[f] = "template";
+    return map;
+  }
+  for (const f of NARRATIVE_FIELDS) {
+    map[f] = isLLMFieldUsable(getNarrativeField(narrative, f)) ? "llm" : "template";
+  }
+  return map;
+}
+
+function countSources(map: Record<NarrativeField, FieldSource>): { llm: number; template: number } {
+  let llm = 0;
+  let template = 0;
+  for (const f of NARRATIVE_FIELDS) {
+    if (map[f] === "llm") llm += 1;
+    else template += 1;
+  }
+  return { llm, template };
+}
+
+/** Tag every console.log from this module so it's grepable in Vercel logs. */
+function log(level: "info" | "warn", event: string, detail: Record<string, unknown> = {}): void {
+  const line = `[narrative] ${event}`;
+  if (level === "warn") {
+    // eslint-disable-next-line no-console
+    console.warn(line, detail);
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(line, detail);
+  }
+}
+
+/**
  * Synthesise the narrative. Returns the validated NarrativeOutput on
- * success, or null on any failure (demo mode, no key, network error,
- * validation reject). The generator handles `null` by using the
- * existing template content for the affected fields.
+ * success, or null on any failure. The generator handles null by using
+ * the existing template content for the affected fields.
  */
 export async function synthesise(input: ContextInput): Promise<NarrativeOutput | null> {
   if (isDemoMode()) {
     record("demo-mode", null);
+    DIAG.last_field_sources = computeFieldSources(null);
+    DIAG.last_field_counts = countSources(DIAG.last_field_sources);
+    log("info", "skipped:demo-mode");
     return null;
   }
+
   if (!llmKeyConfigured()) {
     record("no-key", "ANTHROPIC_API_KEY not configured");
+    DIAG.last_field_sources = computeFieldSources(null);
+    DIAG.last_field_counts = countSources(DIAG.last_field_sources);
+    log("warn", "skipped:no-key", {
+      hint: "Set ANTHROPIC_API_KEY (server-only, NOT NEXT_PUBLIC_) on Vercel and redeploy without cache.",
+    });
     return null;
   }
 
   const ctx = buildContext(input);
+  DIAG.last_context_hash = ctx.hash;
+  log("info", "context-built", {
+    contextHash: ctx.hash,
+    quotes: ctx.counts.quotes,
+    calendar: ctx.counts.calendar,
+    headlines: ctx.counts.headlines,
+    cb_events: ctx.counts.cb_events,
+  });
+
   const cacheKey = `${CACHE_KEY_PREFIX}${ctx.hash}`;
   const cached = cacheGet<NarrativeOutput>(cacheKey);
   if (cached) {
     record("cache", null);
+    DIAG.last_cache_hit_origin = ctx.hash;
+    DIAG.last_field_sources = computeFieldSources(cached);
+    DIAG.last_field_counts = countSources(DIAG.last_field_sources);
+    log("info", "cache-hit", {
+      contextHash: ctx.hash,
+      counts: DIAG.last_field_counts,
+    });
     return cached;
   }
+
+  log("info", "calling-claude", {
+    model: llmModel(),
+    contextHash: ctx.hash,
+  });
 
   let llm;
   try {
@@ -81,6 +197,9 @@ export async function synthesise(input: ContextInput): Promise<NarrativeOutput |
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     record("api-fail", msg);
+    DIAG.last_field_sources = computeFieldSources(null);
+    DIAG.last_field_counts = countSources(DIAG.last_field_sources);
+    log("warn", "api-fail", { error: msg });
     return null;
   }
 
@@ -88,6 +207,12 @@ export async function synthesise(input: ContextInput): Promise<NarrativeOutput |
   DIAG.last_latency_ms = llm.latency_ms;
   DIAG.last_input_tokens = llm.input_tokens;
   DIAG.last_output_tokens = llm.output_tokens;
+  log("info", "claude-returned", {
+    model: llm.model,
+    input_tokens: llm.input_tokens,
+    output_tokens: llm.output_tokens,
+    latency_ms: llm.latency_ms,
+  });
 
   let validated: NarrativeOutput;
   try {
@@ -95,11 +220,26 @@ export async function synthesise(input: ContextInput): Promise<NarrativeOutput |
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     record("validate-fail", msg);
+    DIAG.last_field_sources = computeFieldSources(null);
+    DIAG.last_field_counts = countSources(DIAG.last_field_sources);
+    log("warn", "validate-fail", {
+      error: msg,
+      // First 400 chars of the model's output so we can see what shape
+      // it produced. Never the full body — that bloats Vercel logs and
+      // might include large hallucination passages we want filtered.
+      sample: llm.text.slice(0, 400),
+    });
     return null;
   }
 
   cacheSet(cacheKey, validated, CACHE_TTL_SECONDS);
   record("ok", null);
+  DIAG.last_field_sources = computeFieldSources(validated);
+  DIAG.last_field_counts = countSources(DIAG.last_field_sources);
+  log("info", "ok", {
+    contextHash: ctx.hash,
+    counts: DIAG.last_field_counts,
+  });
   return validated;
 }
 
@@ -113,5 +253,9 @@ export function narrativeDiagnostics(): NarrativeDiagnostics {
     last_input_tokens: DIAG.last_input_tokens,
     last_output_tokens: DIAG.last_output_tokens,
     key_configured: llmKeyConfigured(),
+    last_field_sources: DIAG.last_field_sources,
+    last_field_counts: DIAG.last_field_counts,
+    last_context_hash: DIAG.last_context_hash,
+    last_cache_hit_origin: DIAG.last_cache_hit_origin,
   };
 }
