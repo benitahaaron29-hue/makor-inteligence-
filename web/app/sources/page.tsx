@@ -71,7 +71,7 @@ export default async function SourcesPage() {
             <ErrorState
               title="Could not load source registry"
               message={fetchError}
-              detail="Check the FastAPI backend is running on http://127.0.0.1:8000"
+              detail="The desk data service did not respond. Retry, or refresh the page."
             />
           </div>
         ) : (

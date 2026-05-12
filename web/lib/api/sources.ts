@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import { withMockFallback, loadMock } from "./demo";
 
 export type SourceStatus =
   | "live"
@@ -35,8 +36,13 @@ export interface SourceView {
   region: string | null;
 }
 
+const MOCK_SOURCES = "sources.json";
+
 export const sourcesApi = {
   list(): Promise<SourceView[]> {
-    return apiFetch<SourceView[]>("/sources");
+    return withMockFallback<SourceView[]>(
+      () => apiFetch<SourceView[]>("/sources"),
+      () => loadMock<SourceView[]>(MOCK_SOURCES),
+    );
   },
 };

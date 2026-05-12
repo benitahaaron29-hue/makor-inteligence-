@@ -1,6 +1,7 @@
 import { CommandBar } from "@/components/layout/command-bar";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { isDemoMode } from "@/lib/api/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -20,15 +21,25 @@ interface Group {
 }
 
 export default async function SettingsPage() {
-  const apiOrigin = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://127.0.0.1:8000";
+  const demo = isDemoMode();
   const env = process.env.NODE_ENV ?? "development";
 
-  let apiHealth: Status = "pending";
-  try {
-    const res = await fetch(`${apiOrigin}/api/v1/health`, { cache: "no-store" });
-    apiHealth = res.ok ? "ok" : "failed";
-  } catch {
-    apiHealth = "failed";
+  // In demo mode the service is intentionally not probed — the page is
+  // served entirely from bundled JSON. In live mode we still surface a
+  // reachability check, but we never expose the host URL to the viewer.
+  let apiHealth: Status = demo ? "ok" : "pending";
+  if (!demo) {
+    const apiOrigin = process.env.NEXT_PUBLIC_API_ORIGIN ?? "";
+    if (apiOrigin) {
+      try {
+        const res = await fetch(`${apiOrigin}/api/v1/health`, { cache: "no-store" });
+        apiHealth = res.ok ? "ok" : "failed";
+      } catch {
+        apiHealth = "failed";
+      }
+    } else {
+      apiHealth = "pending";
+    }
   }
 
   const groups: Group[] = [
@@ -38,19 +49,19 @@ export default async function SettingsPage() {
       rows: [
         { label: "Product",     value: "Makor Intelligence Platform" },
         { label: "Surface",     value: "Next.js 14 · React 18 · TypeScript" },
-        { label: "Frontend",    value: "127.0.0.1:3000", hint: "Dev server" },
+        { label: "Mode",        value: demo ? "Demo · bundled data" : "Live · upstream data service", hint: demo ? "NEXT_PUBLIC_DEMO_MODE=true" : null },
         { label: "Environment", value: env },
         { label: "Build",       value: "Phase 1.0 · Mock generator wired" },
       ],
     },
     {
-      eyebrow: "Backend",
-      title: "FastAPI Service",
+      eyebrow: "Data Service",
+      title: "Briefing Backend",
       rows: [
-        { label: "Origin",  value: apiOrigin, hint: "NEXT_PUBLIC_API_ORIGIN" },
-        { label: "Health",  value: apiHealth === "ok" ? "Reachable" : "Unreachable", status: apiHealth },
-        { label: "Database",value: "PostgreSQL via async SQLAlchemy", hint: "SQLite for local boot" },
-        { label: "API root",value: "/api/v1" },
+        { label: "Mode",     value: demo ? "Bundled mock JSON" : "Live API" },
+        { label: "Health",   value: demo ? "Bundled" : (apiHealth === "ok" ? "Reachable" : "Unreachable"), status: apiHealth },
+        { label: "Database", value: demo ? "Static fixtures" : "Managed Postgres" },
+        { label: "API root", value: demo ? "/mock/*.json (static)" : "/api/v1" },
       ],
     },
     {

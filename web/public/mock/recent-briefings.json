@@ -1,0 +1,112 @@
+[
+  {
+    "id": "brief-2026-05-12-mxfx",
+    "briefing_date": "2026-05-12",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 12 May 2026",
+    "headline": "Dollar firmer into US CPI; FOMC minutes lean patient; PBoC fixes test the topside",
+    "risk_tone": "risk_off",
+    "published_at": "2026-05-12T06:42:00Z",
+    "created_at": "2026-05-12T06:38:00Z"
+  },
+  {
+    "id": "brief-2026-05-11-mxfx",
+    "briefing_date": "2026-05-11",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 11 May 2026",
+    "headline": "Pre-CPI conditioning; PM Mansion House preview; ECB Q&A in focus",
+    "risk_tone": "mixed",
+    "published_at": "2026-05-11T06:45:00Z",
+    "created_at": "2026-05-11T06:40:00Z"
+  },
+  {
+    "id": "brief-2026-05-08-mxfx",
+    "briefing_date": "2026-05-08",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 8 May 2026",
+    "headline": "BoE hold + dovish vote split lifts cable; Bunds bid on softer German IP",
+    "risk_tone": "risk_on",
+    "published_at": "2026-05-08T06:38:00Z",
+    "created_at": "2026-05-08T06:34:00Z"
+  },
+  {
+    "id": "brief-2026-05-07-mxfx",
+    "briefing_date": "2026-05-07",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 7 May 2026",
+    "headline": "BoE day; consensus 25bp hold with dovish dissent; cable pinned at 1.2520",
+    "risk_tone": "neutral",
+    "published_at": "2026-05-07T06:40:00Z",
+    "created_at": "2026-05-07T06:36:00Z"
+  },
+  {
+    "id": "brief-2026-05-06-mxfx",
+    "briefing_date": "2026-05-06",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 6 May 2026",
+    "headline": "Risk-on tape; PBoC re-cuts RRR 25bp; copper extends to $9,840",
+    "risk_tone": "risk_on",
+    "published_at": "2026-05-06T06:35:00Z",
+    "created_at": "2026-05-06T06:32:00Z"
+  },
+  {
+    "id": "brief-2026-05-05-mxfx",
+    "briefing_date": "2026-05-05",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 5 May 2026",
+    "headline": "Post-NFP USD rebuild; payrolls 215k vs 175k cons; 2y +9bp",
+    "risk_tone": "risk_off",
+    "published_at": "2026-05-05T06:50:00Z",
+    "created_at": "2026-05-05T06:42:00Z"
+  },
+  {
+    "id": "brief-2026-05-02-mxfx",
+    "briefing_date": "2026-05-02",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 2 May 2026",
+    "headline": "NFP day; consensus 175k + 0.3% AHE; positioning is the variable",
+    "risk_tone": "mixed",
+    "published_at": "2026-05-02T06:30:00Z",
+    "created_at": "2026-05-02T06:28:00Z"
+  },
+  {
+    "id": "brief-2026-05-01-mxfx",
+    "briefing_date": "2026-05-01",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 1 May 2026",
+    "headline": "FOMC hold; press conference patient; 2y −6bp; risk on",
+    "risk_tone": "risk_on",
+    "published_at": "2026-05-01T06:45:00Z",
+    "created_at": "2026-05-01T06:40:00Z"
+  },
+  {
+    "id": "brief-2026-04-30-mxfx",
+    "briefing_date": "2026-04-30",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 30 April 2026",
+    "headline": "FOMC day; consensus hold; Powell Q&A the variable",
+    "risk_tone": "neutral",
+    "published_at": "2026-04-30T06:40:00Z",
+    "created_at": "2026-04-30T06:36:00Z"
+  },
+  {
+    "id": "brief-2026-04-29-mxfx",
+    "briefing_date": "2026-04-29",
+    "briefing_type": "morning_fx_macro",
+    "status": "published",
+    "title": "Morning FX & Macro Review — 29 April 2026",
+    "headline": "Pre-FOMC quiet; ECB Lagarde Q&A on hold; Schatz +2bp",
+    "risk_tone": "neutral",
+    "published_at": "2026-04-29T06:38:00Z",
+    "created_at": "2026-04-29T06:35:00Z"
+  }
+]

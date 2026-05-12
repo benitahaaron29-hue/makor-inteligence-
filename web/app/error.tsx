@@ -25,7 +25,7 @@ export default function Error({
           <ErrorState
             title="Something went wrong"
             message={error.message || "Unknown error"}
-            detail="Check the FastAPI backend is running on http://127.0.0.1:8000"
+            detail="The desk data service did not respond. Retry, or refresh the page."
             action={
               <Button variant="primary" onClick={reset}>
                 Retry
