@@ -39,6 +39,7 @@ import type {
   TradeIdea,
   InstrumentWatch,
   Chart as ChartT,
+  Headline,
   WhatChanged as WhatChangedT,
 } from "@/lib/types/briefing";
 
@@ -1660,8 +1661,91 @@ const GEO_REGIONS = [
   { name: "Energy Security",  short: "ENRG", note: "European storage, LNG balances" },
 ];
 
+// =================================================================== HEADLINES BLOCK
+//
+// Rendered at the top of § 07 Geopolitical Pulse. Each row is a single
+// public-RSS headline → link, with the desk's market-impact frame
+// shown beneath any HIGH-relevance entry. No body text is reproduced —
+// only the link anchor, source, time, category badge, and our own
+// editorial WHY frame.
+
+const HEADLINE_CATEGORY_LABEL: Record<string, string> = {
+  "war-conflict": "Conflict",
+  "sanctions": "Sanctions",
+  "tariffs-trade": "Trade",
+  "elections": "Elections",
+  "government-speech": "Government",
+  "energy-opec": "Energy",
+  "multilateral": "G7 / G20",
+  "fiscal-policy": "Fiscal",
+  "central-bank": "Central Bank",
+  "other": "Macro",
+};
+
+const HEADLINE_CATEGORY_CLASS: Record<string, string> = {
+  "war-conflict": "category-cat-geopolitical",
+  "sanctions": "category-cat-geopolitical",
+  "tariffs-trade": "category-cat-policy",
+  "elections": "category-cat-political",
+  "government-speech": "category-cat-political",
+  "energy-opec": "category-cat-growth",
+  "multilateral": "category-cat-geopolitical",
+  "fiscal-policy": "category-cat-policy",
+  "central-bank": "category-cat-monetary",
+  "other": "category-cat-growth",
+};
+
+function formatHeadlineTime(iso: string): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return "—";
+  const d = new Date(t);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+function HeadlineRow({ h }: { h: Headline }) {
+  const catLabel = HEADLINE_CATEGORY_LABEL[h.category] ?? "Macro";
+  const catCls = HEADLINE_CATEGORY_CLASS[h.category] ?? "category-cat-growth";
+  return (
+    <div className="headline-row">
+      <div className="headline-row-meta">
+        <span className="headline-row-time">{formatHeadlineTime(h.published_at)}</span>
+        <span className="headline-row-source">{h.source}</span>
+        <span className={cn("category-badge", catCls)}>{catLabel}</span>
+        {h.relevance === "high" ? (
+          <span className="headline-row-flag">desk priority</span>
+        ) : null}
+      </div>
+      <div className="headline-row-title">
+        <a href={h.source_url} target="_blank" rel="noopener noreferrer">
+          {h.title}
+        </a>
+      </div>
+      {h.market_impact && h.relevance === "high" ? (
+        <div className="headline-row-impact">{h.market_impact}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function HeadlinesBlock({ headlines }: { headlines: Headline[] | undefined }) {
+  if (!headlines || headlines.length === 0) return null;
+  return (
+    <div className="headlines-block">
+      <div className="headlines-block-eyebrow">
+        Last 24 Hours · Headline Flow
+      </div>
+      <div className="headlines-list">
+        {headlines.map((h) => <HeadlineRow key={h.id} h={h} />)}
+      </div>
+    </div>
+  );
+}
+
 function GeopoliticalBlock({ briefing, intel }: { briefing: BriefingRead; intel: Intelligence | null }) {
   const geo: GeopoliticalPulseT | null = intel?.geopolitical ?? null;
+  const headlines = intel?.headlines;
 
   // Fallback: build a synthetic set from the local list if backend didn't ship one
   const synthetic = (): GeopoliticalRegionT[] => {
@@ -1688,6 +1772,8 @@ function GeopoliticalBlock({ briefing, intel }: { briefing: BriefingRead; intel:
 
   return (
     <>
+      <HeadlinesBlock headlines={headlines} />
+
       {narrative ? (
         <div className="editorial-body research-column" style={{ marginBottom: 16 }}>
           <p>{narrative}</p>

@@ -41,6 +41,8 @@ import { isDemoMode } from "@/lib/api/demo";
 import { getCalendarEvents, calendarDiagnostics } from "@/lib/calendar/service";
 import { meetsDeskFilter } from "@/lib/calendar/classifier";
 import type { CalendarEvent } from "@/lib/calendar/types";
+import { getBriefingHeadlines, headlinesDiagnostics } from "@/lib/headlines/service";
+import type { Headline } from "@/lib/headlines/types";
 
 // ============================================================================
 // FORMATTERS — render real quotes for narrative paragraphs.
@@ -343,6 +345,7 @@ function buildCentralBanks(): CentralBankItem[] {
 async function buildIntelligence(
   byInstrument: Map<string, MarketQuote>,
   calendarEvents: CalendarEvent[],
+  headlines: Headline[],
 ): Promise<Intelligence> {
   const charts = await buildCharts();
 
@@ -358,6 +361,16 @@ async function buildIntelligence(
   const calendarSource = calDiag.last_error
     ? `TradingEconomics — source unavailable (${calDiag.last_error})`
     : `TradingEconomics (${calDiag.last_count} events fetched, ${deskEvents.length} desk-relevant)`;
+
+  // Headlines provenance — surface per-feed success/failure to the
+  // provenance footer rather than silently hiding which sources gave us
+  // today's content.
+  const hlDiag = headlinesDiagnostics();
+  const hlSources = hlDiag.per_feed.length === 0
+    ? "Public RSS feeds — not yet fetched"
+    : hlDiag.per_feed
+        .map((p) => p.ok ? `${p.source} (${p.count})` : `${p.source} — unavailable`)
+        .join(" · ");
 
   return {
     strategist_view: {
@@ -420,13 +433,14 @@ async function buildIntelligence(
     risk_warnings: [],
     consensus_calls: [],
     geopolitical: null,
+    headlines,
     provenance: [
       { section: "regime", sources: ["Yahoo Finance (Vercel-native adapter)"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "fx", sources: ["Yahoo Finance"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "calendar", sources: [calendarSource], as_of: calDiag.last_fetched_at ? calDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
       { section: "central-banks", sources: ["Source connection pending — CME FedWatch + ECB SDW + BoE adapters in B-D.5"], as_of: "—" },
       { section: "trades", sources: ["Template content + Yahoo Finance reference levels"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
-      { section: "geopolitical", sources: ["Source connection pending — AP / Reuters geopolitical adapter in B-D.5"], as_of: "—" },
+      { section: "geopolitical", sources: [hlSources], as_of: hlDiag.last_fetched_at ? hlDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
     ],
     charts,
   };
@@ -452,17 +466,18 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
 
   const slugs = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
 
-  // Fetch market quotes and the desk calendar in parallel — both are
-  // independent network calls and the briefing waits on the slowest.
-  const [quotes, calendarEvents] = await Promise.all([
+  // Market quotes + calendar + headlines fetched in parallel — three
+  // independent network workloads, the briefing waits on the slowest.
+  const [quotes, calendarEvents, headlines] = await Promise.all([
     Promise.all(slugs.map((s) => getQuote(s))),
     getCalendarEvents(),
+    getBriefingHeadlines(10),
   ]);
 
   const byInstrument = new Map<string, MarketQuote>();
   for (const q of quotes) byInstrument.set(q.instrument, q);
 
-  const intelligence = await buildIntelligence(byInstrument, calendarEvents);
+  const intelligence = await buildIntelligence(byInstrument, calendarEvents, headlines);
 
   const now = new Date().toISOString();
   const longDate = formatLongDate(dateIso);

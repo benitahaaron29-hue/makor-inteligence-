@@ -300,6 +300,11 @@ export interface RiskScenario {
   equity_impact: string;
 }
 
+// Re-exported so consumers (renderer, generator) get the Headline shape
+// from the same module they use for everything else briefing-related.
+export type { Headline, HeadlineCategory, HeadlineRelevance } from "@/lib/headlines/types";
+import type { Headline } from "@/lib/headlines/types";
+
 export interface Intelligence {
   strategist_view: StrategistView;
   macro_overview: MacroOverview | null;
@@ -315,6 +320,11 @@ export interface Intelligence {
   // Up to ~4 Bloomberg-style minimal line charts rendered at the top of
   // § 01 Overnight Movers. Optional — older briefings render without them.
   charts?: Chart[];
+  // Last-24h public-RSS headlines (macro / geopolitical / energy /
+  // fiscal), classified for market relevance with desk-authored
+  // "why this matters" frames. Rendered inside § 07 Geopolitical Pulse.
+  // Optional — empty / absent ⇒ no headlines block in the briefing.
+  headlines?: Headline[];
   central_banks: CentralBankItem[];
   pair_commentary: PairCommentary[];
   positioning: PositioningNote[];
