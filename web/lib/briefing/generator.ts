@@ -46,6 +46,8 @@ import type { Headline } from "@/lib/headlines/types";
 import { getBriefingCBEvents, cbDiagnostics } from "@/lib/central-banks/service";
 import { CB_SPECS, ALL_BANKS } from "@/lib/central-banks/feeds";
 import type { CBEvent } from "@/lib/central-banks/types";
+import { synthesise, narrativeDiagnostics } from "@/lib/narrative/service";
+import type { NarrativeOutput } from "@/lib/narrative/types";
 
 // ============================================================================
 // FORMATTERS — render real quotes for narrative paragraphs.
@@ -328,11 +330,26 @@ function buildCentralBanks(cbEvents: CBEvent[]): CentralBankItem[] {
 // INTELLIGENCE — neutral template narrative + the live structural blocks.
 // ============================================================================
 
+/**
+ * Resolve a narrative field, falling back to a template when the LLM
+ * either declined to write the section ("source data insufficient") or
+ * was unavailable entirely (null narrative). The narrative never
+ * extends the template; it replaces it field-by-field when present.
+ */
+function orTemplate(llmValue: string | undefined, templateValue: string): string {
+  if (!llmValue) return templateValue;
+  const t = llmValue.trim();
+  if (t.length === 0) return templateValue;
+  if (t.toLowerCase() === "source data insufficient") return templateValue;
+  return llmValue;
+}
+
 async function buildIntelligence(
   byInstrument: Map<string, MarketQuote>,
   calendarEvents: CalendarEvent[],
   headlines: Headline[],
   cbEvents: CBEvent[],
+  narrative: NarrativeOutput | null,
 ): Promise<Intelligence> {
   const charts = await buildCharts();
 
@@ -375,50 +392,64 @@ async function buildIntelligence(
         .map(([bank, s]) => s.ok > 0 ? `${bank} (${s.count})` : `${bank} — unavailable`)
         .join(" · ");
 
+  // Template content — used when narrative is null OR when a specific
+  // narrative field came back as "source data insufficient". Each field
+  // is wrapped in orTemplate() so the LLM output can replace it piece
+  // by piece without forcing an all-or-nothing override.
+  const tmplStrategistBody =
+    "This briefing structure renders today's framework with live reference " +
+    "levels from connected market-data sources. Strategist commentary " +
+    "lands when narrative synthesis is wired or when a human strategist " +
+    "publishes the morning view.";
+  const tmplOpening =
+    "The morning brief surfaces the desk's structural monitoring set: " +
+    "FX, rates, energy, vol. Directional commentary is intentionally " +
+    "absent until strategist input is available.";
+  const tmplWhatsMoving =
+    `EUR/USD reference: ${fmtSource(eurusd)}. ` +
+    `DXY reference: ${fmtSource(dxy)}. ` +
+    "Quoted levels are pulled from Yahoo Finance and reflect the most " +
+    "recent print available to the free feed.";
+  const tmplRatesView =
+    `US 10Y yield reference: ${fmtSource(us10y)}. ` +
+    "Front-end (US 2Y) coverage lands once the FRED adapter is wired; " +
+    "until then the front-end reads 'data unavailable'.";
+  const tmplCrossAsset =
+    `Brent reference: ${fmtSource(brent)}. ` +
+    "Cross-asset linkage framework is structural: rates anchor risk " +
+    "pricing, FX feeds equity sector rotation, commodities anchor the " +
+    "geopolitical premium.";
+  const tmplWhatChangedSummary =
+    "Recent platform deltas: live market-data layer wired (B-D.1); " +
+    "calendar + headlines + CB activity wired (B-D.2.1–2.3); narrative " +
+    "synthesis layer wired (B-D.2.4). Daily price-action deltas resume " +
+    "when comparison snapshots from the previous session are in cache.";
+  const tmplKeyTakeaways = [
+    { rank: 1, text: "Live market levels are populated from Yahoo Finance where available; fields without a source read 'data unavailable' rather than fabricated values." },
+    { rank: 2, text: "Calendar, headlines, and central-bank activity are now sourced from TradingEconomics, public RSS, and each bank's own feed respectively." },
+    { rank: 3, text: "Narrative synthesis uses Claude Sonnet 4.6 over the assembled context; output cited against context ids, validated before render, falls back to template on failure." },
+  ];
+
   return {
     strategist_view: {
-      headline: "Live market reference",
-      body:
-        "This briefing structure renders today's framework with live reference " +
-        "levels from connected market-data sources. Strategist commentary and " +
-        "directional framing land when human input or a Phase-2 AI synthesis " +
-        "layer is wired. Until then, each section either shows real data with " +
-        "its source attribution or reads as institutional template content.",
+      headline: orTemplate(narrative?.strategist_view.headline, "Live market reference"),
+      body: orTemplate(narrative?.strategist_view.body, tmplStrategistBody),
     },
     macro_overview: {
-      opening:
-        "The morning brief surfaces the desk's structural monitoring set: " +
-        "FX, rates, energy, vol. Directional commentary is intentionally " +
-        "absent until strategist input is available.",
-      whats_moving:
-        `EUR/USD reference: ${fmtSource(eurusd)}. ` +
-        `DXY reference: ${fmtSource(dxy)}. ` +
-        "Quoted levels are pulled from Yahoo Finance and reflect the most " +
-        "recent print available to the free feed.",
-      rates_view:
-        `US 10Y yield reference: ${fmtSource(us10y)}. ` +
-        "Front-end (US 2Y) coverage lands once the FRED adapter is wired " +
-        "in B-D.2 — until then the front-end card reads 'data unavailable'.",
-      cross_asset_thesis:
-        `Brent reference: ${fmtSource(brent)}. ` +
-        "Cross-asset linkage framework is structural: rates anchor risk " +
-        "pricing, FX feeds equity sector rotation, commodities anchor the " +
-        "geopolitical premium. Specific directional theses await strategist " +
-        "input.",
+      opening: orTemplate(narrative?.macro_overview.opening, tmplOpening),
+      whats_moving: orTemplate(narrative?.macro_overview.whats_moving, tmplWhatsMoving),
+      rates_view: orTemplate(narrative?.macro_overview.rates_view, tmplRatesView),
+      cross_asset_thesis: orTemplate(narrative?.macro_overview.cross_asset_thesis, tmplCrossAsset),
     },
     what_changed: {
-      summary:
-        "Recent platform deltas: live market-data layer wired (B-D.1); " +
-        "silent demo-mock fallback removed; DataPoint provenance plumbing " +
-        "pending (B-D.3). Daily price-action deltas resume when comparison " +
-        "snapshots from the previous session are in cache.",
-      deltas: [],
+      summary: orTemplate(narrative?.what_changed.summary, tmplWhatChangedSummary),
+      deltas: narrative?.what_changed.deltas && narrative.what_changed.deltas.length > 0
+        ? narrative.what_changed.deltas
+        : [],
     },
-    key_takeaways: [
-      { rank: 1, text: "Live market levels are populated from Yahoo Finance where available; fields without a source read 'data unavailable' rather than fabricated values." },
-      { rank: 2, text: "Strategist commentary is template content until human input or AI synthesis is wired." },
-      { rank: 3, text: "Calendar, central-bank pricing, positioning, and pair-level commentary require dedicated source adapters (B-D.2 / B-D.5)." },
-    ],
+    key_takeaways: narrative?.key_takeaways && narrative.key_takeaways.length > 0
+      ? narrative.key_takeaways
+      : tmplKeyTakeaways,
     desk_priorities: [],
     risk_scenarios: [],
     trade_ideas: [],
@@ -470,9 +501,8 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
 
   const slugs = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
 
-  // Market quotes + calendar + headlines + central-bank activity fetched
-  // in parallel — four independent network workloads, the briefing waits
-  // on the slowest.
+  // Stage 1 — fetch the structured data first. The narrative service
+  // depends on this output; we can't kick it off until the data is in.
   const [quotes, calendarEvents, headlines, cbEvents] = await Promise.all([
     Promise.all(slugs.map((s) => getQuote(s))),
     getCalendarEvents(),
@@ -483,10 +513,65 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
   const byInstrument = new Map<string, MarketQuote>();
   for (const q of quotes) byInstrument.set(q.instrument, q);
 
-  const intelligence = await buildIntelligence(byInstrument, calendarEvents, headlines, cbEvents);
+  // Stage 2 — synthesise the institutional narrative from the structured
+  // context. Returns null when demo-mode is on, when no API key is
+  // configured, or when the LLM call / validation fails. In every
+  // null case the buildIntelligence step falls back to its existing
+  // template content for the affected fields.
+  const narrative = await synthesise({
+    date_iso: dateIso,
+    quotes,
+    calendar: calendarEvents,
+    headlines,
+    cb_events: cbEvents,
+  });
+
+  const intelligence = await buildIntelligence(byInstrument, calendarEvents, headlines, cbEvents, narrative);
 
   const now = new Date().toISOString();
   const longDate = formatLongDate(dateIso);
+
+  // BriefingRead-level template fields. Each is wrapped in orTemplate()
+  // so the LLM narrative can replace any field piece-by-piece.
+  const tmplHeadline =
+    "Live market reference levels via connected sources. Narrative " +
+    "synthesis from Anthropic Claude over the assembled context.";
+  const tmplExecSummary =
+    "Pre-market institutional brief.\n\n" +
+    "Live market levels pulled from Yahoo Finance (15-minute delayed for " +
+    "exchange-traded; effectively realtime for FX). Today's economic " +
+    `calendar sourced from TradingEconomics — ${selectBriefingEvents(calendarEvents).length} ` +
+    "desk-relevant releases ahead. Headlines + central-bank activity " +
+    "pulled from each source's public RSS feed. Narrative synthesis " +
+    "via Claude Sonnet 4.6 when ANTHROPIC_API_KEY is configured; " +
+    "template content otherwise.";
+  const tmplFx =
+    `EUR/USD reference: ${fmtSource(byInstrument.get("EUR/USD"))}. ` +
+    `DXY reference: ${fmtSource(byInstrument.get("DXY"))}.`;
+  const tmplRates =
+    `US 10Y yield reference: ${fmtSource(byInstrument.get("US 10Y"))}. ` +
+    `US 2Y yield reference: ${fmtSource(byInstrument.get("US 2Y"))}.`;
+  const tmplEquities =
+    `VIX reference: ${fmtSource(byInstrument.get("VIX"))}. ` +
+    "Equity index quote coverage (S&P, Stoxx, Nikkei) lands when the " +
+    "instrument registry expands.";
+  const tmplCommodities =
+    `Brent reference: ${fmtSource(byInstrument.get("Brent"))}. ` +
+    `Gold reference: ${fmtSource(byInstrument.get("Gold"))}.`;
+
+  // Narrative diagnostic for the provenance footer.
+  const narrDiag = narrativeDiagnostics();
+  const narrativeSource = !narrDiag.key_configured
+    ? "Anthropic Claude — ANTHROPIC_API_KEY not configured (using template fallback)"
+    : narrDiag.last_result === "ok"
+      ? `Anthropic Claude (${narrDiag.last_model}, ${narrDiag.last_input_tokens}→${narrDiag.last_output_tokens} tokens, ${narrDiag.last_latency_ms}ms)`
+      : narrDiag.last_result === "cache"
+        ? `Anthropic Claude (${narrDiag.last_model}, cached)`
+        : narrDiag.last_result === "validate-fail"
+          ? `Anthropic Claude — output failed validation (${narrDiag.last_error}); using template fallback`
+          : narrDiag.last_result === "api-fail"
+            ? `Anthropic Claude — API call failed (${narrDiag.last_error}); using template fallback`
+            : "Anthropic Claude — not yet called";
 
   return {
     id: `auto-${dateIso}`,
@@ -494,58 +579,47 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     briefing_type: "morning_fx_macro",
     status: "published",
     title: `Morning FX & Macro Review — ${longDate}`,
-    headline:
-      "Live market reference levels via Yahoo Finance. Narrative sections " +
-      "are institutional template until strategist input is wired.",
-    executive_summary:
-      "Pre-market institutional brief.\n\n" +
-      "Live market levels pulled from Yahoo Finance (15-minute delayed for " +
-      "exchange-traded; effectively realtime for FX). Today's economic " +
-      `calendar sourced from TradingEconomics — ${selectBriefingEvents(calendarEvents).length} ` +
-      "desk-relevant releases ahead, each tagged with a market-impact frame " +
-      "where the desk has a template. Strategist narrative, central-bank " +
-      "pricing, positioning (CFTC), and geopolitical headline flow are " +
-      "template scaffolding until their dedicated source adapters land " +
-      "(B-D.2 → B-D.5).",
-    fx_commentary:
-      `EUR/USD reference: ${fmtSource(byInstrument.get("EUR/USD"))}. ` +
-      `DXY reference: ${fmtSource(byInstrument.get("DXY"))}. ` +
-      "Specific pair-level commentary requires per-pair vol grids and " +
-      "level analysis — that section ships in B-D.3.",
-    rates_commentary:
-      `US 10Y yield reference: ${fmtSource(byInstrument.get("US 10Y"))}. ` +
-      `US 2Y yield reference: ${fmtSource(byInstrument.get("US 2Y"))}.`,
-    equities_commentary:
-      `VIX reference: ${fmtSource(byInstrument.get("VIX"))}. ` +
-      "Equity index quote coverage (S&P, Stoxx, Nikkei) lands in B-D.2 " +
-      "when the registry expands.",
-    commodities_commentary:
-      `Brent reference: ${fmtSource(byInstrument.get("Brent"))}. ` +
-      `Gold reference: ${fmtSource(byInstrument.get("Gold"))}.`,
-    risk_tone: "neutral" as RiskTone,
+    headline: orTemplate(narrative?.strategist_view.headline, tmplHeadline),
+    executive_summary: orTemplate(narrative?.executive_summary, tmplExecSummary),
+    fx_commentary: orTemplate(narrative?.fx_commentary, tmplFx),
+    rates_commentary: orTemplate(narrative?.rates_commentary, tmplRates),
+    equities_commentary: orTemplate(narrative?.equities_commentary, tmplEquities),
+    commodities_commentary: orTemplate(narrative?.commodities_commentary, tmplCommodities),
+    risk_tone: (narrative?.risk_tone ?? "neutral") as RiskTone,
     key_events: selectBriefingEvents(calendarEvents),
     risk_themes: [],
     market_snapshot: buildSnapshot(byInstrument),
-    intelligence,
-    generation_source: "mock",
+    intelligence: {
+      ...intelligence,
+      provenance: [
+        ...intelligence.provenance,
+        {
+          section: "narrative",
+          sources: [narrativeSource],
+          as_of: narrDiag.last_call_at ? narrDiag.last_call_at.slice(11, 16) + " UTC" : "—",
+        },
+      ],
+    },
+    generation_source: narrative ? "anthropic" : "mock",
     generator_version: GENERATOR_VERSION,
-    model_name: null,
+    model_name: narrative ? narrDiag.last_model : null,
     generation_metadata: {
       generator: "vercel-native",
       market_data_sources: ["Yahoo Finance"],
-      pending_sources: ["FRED", "Stooq", "ECB SDW", "TradingEconomics", "CME FedWatch", "CFTC COT"],
+      calendar_source: "TradingEconomics",
+      headlines_sources: ["BBC", "AP"],
+      cb_sources: ["Federal Reserve", "ECB", "BoE", "BoJ", "SNB"],
+      narrative_model: narrative ? narrDiag.last_model : null,
+      narrative_result: narrDiag.last_result,
     },
     desk: "Macro & FX",
     author: "Makor Securities · Macro & FX Desk",
     published_at: now,
     created_at: now,
     updated_at: now,
-    data_provenance: "partial",
-    demo_disclosure:
-      "Live market reference levels via Yahoo Finance (15min delayed for " +
-      "exchange-traded; realtime for FX). Narrative sections are institutional " +
-      "template content until human strategist input or Phase-2 AI synthesis " +
-      "is wired. Per-section source attribution is shown in the Provenance " +
-      "footer of each block.",
+    data_provenance: narrative ? "live" : "partial",
+    demo_disclosure: narrative
+      ? null
+      : "Live market data, calendar, headlines, and central-bank activity all sourced from connected feeds. Narrative synthesis is template content until ANTHROPIC_API_KEY is configured on the server. Per-section source attribution is shown in the Provenance footer of each block.",
   };
 }
