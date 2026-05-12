@@ -7,9 +7,14 @@ const nextConfig = {
   // PNG via fs.readFile — those live outside the function's import graph,
   // so we force-include them here. Without this, the export route builds
   // fine but fails at runtime on Vercel with "no such file or directory".
+  //
+  // The "**" key is intentionally a catch-all so the include list applies
+  // regardless of how Next 14 normalises the dynamic-route path: every
+  // function bundle picks up the same handful of files, with negligible
+  // size overhead.
   experimental: {
     outputFileTracingIncludes: {
-      "/briefings/*/export": [
+      "**": [
         "./styles/tokens.css",
         "./styles/components.css",
         "./public/brand/**",
