@@ -305,6 +305,10 @@ export interface RiskScenario {
 export type { Headline, HeadlineCategory, HeadlineRelevance } from "@/lib/headlines/types";
 import type { Headline } from "@/lib/headlines/types";
 
+// Central-bank canonical types — same re-export pattern.
+export type { CBEvent, CBName, CBEventKind } from "@/lib/central-banks/types";
+import type { CBEvent } from "@/lib/central-banks/types";
+
 export interface Intelligence {
   strategist_view: StrategistView;
   macro_overview: MacroOverview | null;
@@ -325,6 +329,11 @@ export interface Intelligence {
   // "why this matters" frames. Rendered inside § 07 Geopolitical Pulse.
   // Optional — empty / absent ⇒ no headlines block in the briefing.
   headlines?: Headline[];
+  // Last-14d central-bank activity: statements, minutes, speeches,
+  // press conferences, testimony. Pulled from each bank's own public
+  // RSS feed (Fed, ECB, BoE, BoJ, SNB). Rendered as a "Recent activity"
+  // sub-block inside § 06 Central Bank Watch.
+  cb_events?: CBEvent[];
   central_banks: CentralBankItem[];
   pair_commentary: PairCommentary[];
   positioning: PositioningNote[];

@@ -40,6 +40,7 @@ import type {
   InstrumentWatch,
   Chart as ChartT,
   Headline,
+  CBEvent,
   WhatChanged as WhatChangedT,
 } from "@/lib/types/briefing";
 
@@ -1600,13 +1601,103 @@ function isCentralBankEvent(e: KeyEvent): boolean {
   return CB_KEYWORDS.some((kw) => hay.includes(kw));
 }
 
+// =================================================================== CB EVENTS BLOCK
+//
+// Rendered at the top of § 06 Central Bank Watch. Each row is one
+// recent statement / minutes / speech / press conference / testimony
+// from a major bank's public RSS feed. Shows time · bank · kind ·
+// speaker · headline link, with the per-bank market-impact frame
+// underneath statement / minutes / press-conf rows (the highest-signal
+// kinds). No body text from upstream is reproduced — only the link
+// anchor + our editorial framing.
+
+const CB_KIND_LABEL: Record<string, string> = {
+  "statement": "Statement",
+  "minutes": "Minutes",
+  "speech": "Speech",
+  "press-conf": "Press conf",
+  "testimony": "Testimony",
+  "release": "Release",
+};
+
+const CB_KIND_BADGE_CLASS: Record<string, string> = {
+  "statement": "category-cat-monetary",
+  "minutes": "category-cat-monetary",
+  "press-conf": "category-cat-monetary",
+  "testimony": "category-cat-political",
+  "speech": "category-cat-policy",
+  "release": "category-cat-growth",
+};
+
+function formatCBEventTime(iso: string): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return "—";
+  const d = new Date(t);
+  const today = new Date();
+  const sameDay =
+    d.getUTCFullYear() === today.getUTCFullYear() &&
+    d.getUTCMonth() === today.getUTCMonth() &&
+    d.getUTCDate() === today.getUTCDate();
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  if (sameDay) return `${hh}:${mm}`;
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const mon = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${mon} ${hh}:${mm}`;
+}
+
+function CBEventRow({ e }: { e: CBEvent }) {
+  const kindLabel = CB_KIND_LABEL[e.kind] ?? "Release";
+  const kindCls = CB_KIND_BADGE_CLASS[e.kind] ?? "category-cat-growth";
+  const showImpact =
+    !!e.market_impact &&
+    (e.kind === "statement" || e.kind === "minutes" || e.kind === "press-conf" || e.kind === "testimony");
+  return (
+    <div className="cb-event-row">
+      <div className="cb-event-meta">
+        <span className="cb-event-time">{formatCBEventTime(e.datetime)}</span>
+        <span className="cb-event-bank">{e.bank}</span>
+        <span className={cn("category-badge", kindCls)}>{kindLabel}</span>
+        {e.speaker ? <span className="cb-event-speaker">{e.speaker}</span> : null}
+      </div>
+      <div className="cb-event-title">
+        {e.source_url ? (
+          <a href={e.source_url} target="_blank" rel="noopener noreferrer">
+            {e.title}
+          </a>
+        ) : (
+          e.title
+        )}
+      </div>
+      {showImpact ? (
+        <div className="cb-event-impact">{e.market_impact}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function CBEventsBlock({ events }: { events: CBEvent[] | undefined }) {
+  if (!events || events.length === 0) return null;
+  return (
+    <div className="cb-events-block">
+      <div className="cb-events-eyebrow">Recent Activity · Last 14 Days</div>
+      <div className="cb-events-list">
+        {events.map((e) => <CBEventRow key={e.id} e={e} />)}
+      </div>
+    </div>
+  );
+}
+
 function CentralBankBlock({ briefing, intel }: { briefing: BriefingRead; intel: Intelligence | null }) {
   const cbEvents = (briefing.key_events ?? []).filter(isCentralBankEvent);
   const prov = provenanceFor("central-banks", intel);
+  const recentCBActivity = intel?.cb_events;
 
   return (
     <>
       <BodyParagraphs text={briefing.rates_commentary} />
+
+      <CBEventsBlock events={recentCBActivity} />
 
       {intel && intel.central_banks.length > 0 ? (
         <div style={{ marginTop: 16, padding: "8px 14px", border: "1px solid var(--border-subtle)", borderRadius: 3, background: "var(--surface-panel)" }}>

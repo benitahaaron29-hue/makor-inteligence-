@@ -3235,3 +3235,139 @@
   .headline-row-title a { color: #08111F !important; border-bottom: 0 !important; }
   .headline-row-impact { color: #233452 !important; font-size: 9pt !important; line-height: 12pt !important; border-left-color: #1F56D1 !important; }
 }
+
+/* =============================================================================
+   CB EVENTS BLOCK — last-14d central-bank activity inside § 06.
+
+   Same row shape as the headline rows: meta line (time · bank · kind
+   badge · optional speaker) above the link title, with the per-bank
+   market-impact frame underneath statement / minutes / press-conf /
+   testimony rows. Speeches and routine releases show without the frame
+   to avoid repetition.
+   ============================================================================= */
+
+.cb-events-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0 20px;
+  max-width: var(--layout-research-max-w);
+}
+
+.cb-events-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--makor-300);
+}
+
+.cb-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cb-event-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.cb-event-row:last-child {
+  border-bottom: 0;
+}
+
+.cb-event-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  flex-wrap: wrap;
+}
+
+.cb-event-time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.cb-event-bank {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--makor-200);
+  padding: 1px 6px;
+  border: 1px solid var(--border-default);
+  border-radius: 2px;
+}
+
+.cb-event-speaker {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.cb-event-title {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-primary);
+  letter-spacing: -0.003em;
+}
+.cb-event-title a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--border-default);
+}
+.cb-event-title a:hover {
+  color: var(--makor-200);
+  border-bottom-color: var(--makor-300);
+}
+
+.cb-event-impact {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--text-secondary);
+  padding-left: 12px;
+  border-left: 2px solid var(--border-accent);
+  font-style: italic;
+}
+
+/* Print/export — paper-safe, WCAG-AA against white. */
+@media print {
+  .cb-events-block {
+    margin: 6pt 0 12pt !important;
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+  .cb-events-eyebrow {
+    color: #1F56D1 !important;
+    font-size: 9pt !important;
+    letter-spacing: 0.18em !important;
+  }
+  .cb-event-row {
+    border-bottom: 0.4pt solid #C7DAFF !important;
+    padding: 6pt 0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .cb-event-meta { color: #4B5B72 !important; font-size: 8pt !important; }
+  .cb-event-time { color: #233452 !important; }
+  .cb-event-bank { color: #1F56D1 !important; border-color: #C7DAFF !important; }
+  .cb-event-speaker { color: #233452 !important; }
+  .cb-event-title { color: #08111F !important; font-size: 10.5pt !important; line-height: 14pt !important; }
+  .cb-event-title a { color: #08111F !important; border-bottom: 0 !important; }
+  .cb-event-impact { color: #233452 !important; font-size: 9pt !important; line-height: 12pt !important; border-left-color: #1F56D1 !important; }
+}

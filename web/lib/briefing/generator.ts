@@ -43,6 +43,9 @@ import { meetsDeskFilter } from "@/lib/calendar/classifier";
 import type { CalendarEvent } from "@/lib/calendar/types";
 import { getBriefingHeadlines, headlinesDiagnostics } from "@/lib/headlines/service";
 import type { Headline } from "@/lib/headlines/types";
+import { getBriefingCBEvents, cbDiagnostics } from "@/lib/central-banks/service";
+import { CB_SPECS, ALL_BANKS } from "@/lib/central-banks/feeds";
+import type { CBEvent } from "@/lib/central-banks/types";
 
 // ============================================================================
 // FORMATTERS — render real quotes for narrative paragraphs.
@@ -279,63 +282,46 @@ function buildInstrumentsToWatch(byInstrument: Map<string, MarketQuote>): Instru
 // CENTRAL BANK WATCH — qualitative scaffold; no fabricated pricing.
 // ============================================================================
 
-function buildCentralBanks(): CentralBankItem[] {
-  // Calendar dates and biases are descriptive scaffolding. The renderer
-  // shows them as the desk's framework. Pricing fields explicitly note
-  // that the live source connections are pending.
-  return [
-    {
-      bank: "Federal Reserve",
-      short: "Fed",
-      last_meeting: "Most recent FOMC",
+/**
+ * Build the structural CentralBankItem cards from the CB_SPECS registry
+ * + recent RSS-derived activity. Bias and the live "why this matters
+ * today" frame come from the per-bank spec; pricing fields stay tagged
+ * "Source connection pending" until CME FedWatch / OIS adapters land.
+ *
+ * recent_speakers is populated from cb_events when the bank has at
+ * least one speech in the 14-day window — neutral, no fabrication.
+ */
+function buildCentralBanks(cbEvents: CBEvent[]): CentralBankItem[] {
+  return ALL_BANKS.map((bank) => {
+    const spec = CB_SPECS[bank];
+    const bankEvents = cbEvents.filter((e) => e.bank === bank);
+    const recentSpeakers = Array.from(
+      new Set(
+        bankEvents
+          .filter((e) => e.kind === "speech" || e.kind === "press-conf" || e.kind === "testimony")
+          .map((e) => e.speaker)
+          .filter((s): s is string => typeof s === "string" && s.length > 0),
+      ),
+    ).slice(0, 5);
+
+    return {
+      bank: spec.name,
+      short: spec.bank,
+      last_meeting: "See official calendar (link in source footer)",
       next_meeting_date: null,
       days_to_next: null,
-      market_pricing: "Live cut-probability pricing pending CME FedWatch adapter (B-D.5)",
-      bias: "Awaiting data sensitivity to inflation + labour-market prints",
-      upcoming_speakers: [],
-      policy_stance: null,
+      market_pricing: "Live pricing pending CME FedWatch / OIS adapters",
+      bias: spec.bias,
+      upcoming_speakers: recentSpeakers,
+      policy_stance: spec.market_impact,
       inflation_sensitivity: null,
       growth_sensitivity: null,
       qt_stance: null,
       pricing_change_1w: "Source connection pending",
       hawkish_shift: null,
       triggers: [],
-    },
-    {
-      bank: "European Central Bank",
-      short: "ECB",
-      last_meeting: "Most recent Governing Council meeting",
-      next_meeting_date: null,
-      days_to_next: null,
-      market_pricing: "Live OIS-derived pricing pending ECB SDW adapter (B-D.5)",
-      bias: "Path conditioned on services-inflation persistence",
-      upcoming_speakers: [],
-      policy_stance: null,
-      inflation_sensitivity: null,
-      growth_sensitivity: null,
-      qt_stance: null,
-      pricing_change_1w: "Source connection pending",
-      hawkish_shift: null,
-      triggers: [],
-    },
-    {
-      bank: "Bank of England",
-      short: "BoE",
-      last_meeting: "Most recent MPC meeting",
-      next_meeting_date: null,
-      days_to_next: null,
-      market_pricing: "Live OIS-derived pricing pending adapter (B-D.5)",
-      bias: "Vote-split structure is the variable; services-inflation read remains the binary",
-      upcoming_speakers: [],
-      policy_stance: null,
-      inflation_sensitivity: null,
-      growth_sensitivity: null,
-      qt_stance: null,
-      pricing_change_1w: "Source connection pending",
-      hawkish_shift: null,
-      triggers: [],
-    },
-  ];
+    };
+  });
 }
 
 // ============================================================================
@@ -346,6 +332,7 @@ async function buildIntelligence(
   byInstrument: Map<string, MarketQuote>,
   calendarEvents: CalendarEvent[],
   headlines: Headline[],
+  cbEvents: CBEvent[],
 ): Promise<Intelligence> {
   const charts = await buildCharts();
 
@@ -370,6 +357,22 @@ async function buildIntelligence(
     ? "Public RSS feeds — not yet fetched"
     : hlDiag.per_feed
         .map((p) => p.ok ? `${p.source} (${p.count})` : `${p.source} — unavailable`)
+        .join(" · ");
+
+  // Central-bank provenance — per-bank success/failure folded into a
+  // single comma-separated string. Each bank's official calendar URL is
+  // surfaced in the renderer via the CB cards' source footer.
+  const cbDiag = cbDiagnostics();
+  const cbBankStatus = new Map<string, { ok: number; failed: number; count: number }>();
+  for (const p of cbDiag.per_feed) {
+    const s = cbBankStatus.get(p.bank) ?? { ok: 0, failed: 0, count: 0 };
+    if (p.ok) { s.ok += 1; s.count += p.count; } else { s.failed += 1; }
+    cbBankStatus.set(p.bank, s);
+  }
+  const cbSources = cbBankStatus.size === 0
+    ? "Public RSS feeds — not yet fetched"
+    : Array.from(cbBankStatus.entries())
+        .map(([bank, s]) => s.ok > 0 ? `${bank} (${s.count})` : `${bank} — unavailable`)
         .join(" · ");
 
   return {
@@ -420,7 +423,7 @@ async function buildIntelligence(
     risk_scenarios: [],
     trade_ideas: [],
     instruments_to_watch: buildInstrumentsToWatch(byInstrument),
-    central_banks: buildCentralBanks(),
+    central_banks: buildCentralBanks(cbEvents),
     pair_commentary: [],
     positioning: [],
     session_breakdown: {
@@ -434,11 +437,12 @@ async function buildIntelligence(
     consensus_calls: [],
     geopolitical: null,
     headlines,
+    cb_events: cbEvents,
     provenance: [
       { section: "regime", sources: ["Yahoo Finance (Vercel-native adapter)"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "fx", sources: ["Yahoo Finance"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "calendar", sources: [calendarSource], as_of: calDiag.last_fetched_at ? calDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
-      { section: "central-banks", sources: ["Source connection pending — CME FedWatch + ECB SDW + BoE adapters in B-D.5"], as_of: "—" },
+      { section: "central-banks", sources: [cbSources], as_of: cbDiag.last_fetched_at ? cbDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
       { section: "trades", sources: ["Template content + Yahoo Finance reference levels"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "geopolitical", sources: [hlSources], as_of: hlDiag.last_fetched_at ? hlDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
     ],
@@ -466,18 +470,20 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
 
   const slugs = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
 
-  // Market quotes + calendar + headlines fetched in parallel — three
-  // independent network workloads, the briefing waits on the slowest.
-  const [quotes, calendarEvents, headlines] = await Promise.all([
+  // Market quotes + calendar + headlines + central-bank activity fetched
+  // in parallel — four independent network workloads, the briefing waits
+  // on the slowest.
+  const [quotes, calendarEvents, headlines, cbEvents] = await Promise.all([
     Promise.all(slugs.map((s) => getQuote(s))),
     getCalendarEvents(),
     getBriefingHeadlines(10),
+    getBriefingCBEvents(8),
   ]);
 
   const byInstrument = new Map<string, MarketQuote>();
   for (const q of quotes) byInstrument.set(q.instrument, q);
 
-  const intelligence = await buildIntelligence(byInstrument, calendarEvents, headlines);
+  const intelligence = await buildIntelligence(byInstrument, calendarEvents, headlines, cbEvents);
 
   const now = new Date().toISOString();
   const longDate = formatLongDate(dateIso);
