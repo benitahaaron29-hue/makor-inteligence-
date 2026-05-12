@@ -19,6 +19,7 @@ import type { MarketAdapter } from "./adapters/base";
 import { REGISTRY, resolveInstrument, type AdapterName } from "./registry";
 import { cacheGet, cacheSet } from "./cache";
 import { unavailable, type MarketQuote } from "./types";
+import { isDemoMode } from "@/lib/api/demo";
 
 /**
  * Registered adapters. Adding FRED / Stooq / ECB in B-D.2 means dropping
@@ -31,10 +32,6 @@ const ADAPTERS: Partial<Record<AdapterName, MarketAdapter>> = {
   // stooq → B-D.2
   // ecb   → B-D.2
 };
-
-function isDemoMode(): boolean {
-  return process.env.NEXT_PUBLIC_DEMO_MODE === "true";
-}
 
 export async function getQuote(rawInstrument: string): Promise<MarketQuote> {
   const resolved = resolveInstrument(rawInstrument);
