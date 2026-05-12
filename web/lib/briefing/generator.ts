@@ -31,12 +31,16 @@ import type {
   CentralBankItem,
   MarketSnapshot,
   RiskTone,
+  KeyEvent,
 } from "@/lib/types/briefing";
 import type { MarketQuote } from "@/lib/market/types";
 import { getQuote } from "@/lib/market/service";
 import { REGISTRY } from "@/lib/market/registry";
 import { yahooFetchSeries, type TimeSeries } from "@/lib/market/adapters/yahoo";
 import { isDemoMode } from "@/lib/api/demo";
+import { getCalendarEvents, calendarDiagnostics } from "@/lib/calendar/service";
+import { meetsDeskFilter } from "@/lib/calendar/classifier";
+import type { CalendarEvent } from "@/lib/calendar/types";
 
 // ============================================================================
 // FORMATTERS — render real quotes for narrative paragraphs.
@@ -66,6 +70,42 @@ function formatLongDate(iso: string): string {
   if (!y || !m || !d) return iso;
   const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   return `${d} ${months[m - 1]} ${y}`;
+}
+
+// ============================================================================
+// CALENDAR → KEY EVENT MAPPER
+//
+// Translates a CalendarEvent (canonical TradingEconomics-derived shape)
+// into the briefing's existing KeyEvent shape so the reader can render
+// it with no UI changes. The market_impact frame (where present) flows
+// into `desk_focus`, which the existing renderer already shows.
+// ============================================================================
+
+function calendarToKeyEvent(e: CalendarEvent): KeyEvent {
+  return {
+    time_utc: e.time,
+    region: e.country,
+    event: e.event,
+    importance: e.importance,
+    forecast: e.forecast,
+    previous: e.previous,
+    speaker: null,
+    topic: null,
+    category: e.category,
+    sensitivity: e.importance === "critical" ? "desk_critical" : e.importance,
+    pairs_affected: null,
+    vol_impact: null,
+    desk_focus: e.market_impact,
+  };
+}
+
+/**
+ * Filter the full calendar window to what belongs at the top of the
+ * briefing: critical + high importance, capped at 12 to avoid bloat,
+ * already chronologically sorted by the service.
+ */
+function selectBriefingEvents(events: CalendarEvent[]): KeyEvent[] {
+  return events.filter(meetsDeskFilter).slice(0, 12).map(calendarToKeyEvent);
 }
 
 // ============================================================================
@@ -302,6 +342,7 @@ function buildCentralBanks(): CentralBankItem[] {
 
 async function buildIntelligence(
   byInstrument: Map<string, MarketQuote>,
+  calendarEvents: CalendarEvent[],
 ): Promise<Intelligence> {
   const charts = await buildCharts();
 
@@ -309,6 +350,14 @@ async function buildIntelligence(
   const us10y = byInstrument.get("US 10Y");
   const dxy = byInstrument.get("DXY");
   const brent = byInstrument.get("Brent");
+
+  // Calendar-derived structural signal — count critical/high events today
+  // so the "what_changed" + "rates_view" copy can reference real load.
+  const deskEvents = calendarEvents.filter(meetsDeskFilter);
+  const calDiag = calendarDiagnostics();
+  const calendarSource = calDiag.last_error
+    ? `TradingEconomics — source unavailable (${calDiag.last_error})`
+    : `TradingEconomics (${calDiag.last_count} events fetched, ${deskEvents.length} desk-relevant)`;
 
   return {
     strategist_view: {
@@ -374,7 +423,7 @@ async function buildIntelligence(
     provenance: [
       { section: "regime", sources: ["Yahoo Finance (Vercel-native adapter)"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "fx", sources: ["Yahoo Finance"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
-      { section: "calendar", sources: ["Source connection pending — TradingEconomics adapter ships in B-D.5"], as_of: "—" },
+      { section: "calendar", sources: [calendarSource], as_of: calDiag.last_fetched_at ? calDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
       { section: "central-banks", sources: ["Source connection pending — CME FedWatch + ECB SDW + BoE adapters in B-D.5"], as_of: "—" },
       { section: "trades", sources: ["Template content + Yahoo Finance reference levels"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "geopolitical", sources: ["Source connection pending — AP / Reuters geopolitical adapter in B-D.5"], as_of: "—" },
@@ -402,11 +451,18 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
   }
 
   const slugs = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
-  const quotes = await Promise.all(slugs.map((s) => getQuote(s)));
+
+  // Fetch market quotes and the desk calendar in parallel — both are
+  // independent network calls and the briefing waits on the slowest.
+  const [quotes, calendarEvents] = await Promise.all([
+    Promise.all(slugs.map((s) => getQuote(s))),
+    getCalendarEvents(),
+  ]);
+
   const byInstrument = new Map<string, MarketQuote>();
   for (const q of quotes) byInstrument.set(q.instrument, q);
 
-  const intelligence = await buildIntelligence(byInstrument);
+  const intelligence = await buildIntelligence(byInstrument, calendarEvents);
 
   const now = new Date().toISOString();
   const longDate = formatLongDate(dateIso);
@@ -422,11 +478,14 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
       "are institutional template until strategist input is wired.",
     executive_summary:
       "Pre-market institutional brief.\n\n" +
-      "Live market levels are pulled from Yahoo Finance (15-minute delayed " +
-      "for exchange-traded instruments, effectively realtime for FX). " +
-      "Strategist commentary, calendar, central-bank pricing, positioning " +
-      "(CFTC), and geopolitical narrative are template scaffolding until " +
-      "their dedicated source adapters are wired (B-D.2 → B-D.5).",
+      "Live market levels pulled from Yahoo Finance (15-minute delayed for " +
+      "exchange-traded; effectively realtime for FX). Today's economic " +
+      `calendar sourced from TradingEconomics — ${selectBriefingEvents(calendarEvents).length} ` +
+      "desk-relevant releases ahead, each tagged with a market-impact frame " +
+      "where the desk has a template. Strategist narrative, central-bank " +
+      "pricing, positioning (CFTC), and geopolitical headline flow are " +
+      "template scaffolding until their dedicated source adapters land " +
+      "(B-D.2 → B-D.5).",
     fx_commentary:
       `EUR/USD reference: ${fmtSource(byInstrument.get("EUR/USD"))}. ` +
       `DXY reference: ${fmtSource(byInstrument.get("DXY"))}. ` +
@@ -443,7 +502,7 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
       `Brent reference: ${fmtSource(byInstrument.get("Brent"))}. ` +
       `Gold reference: ${fmtSource(byInstrument.get("Gold"))}.`,
     risk_tone: "neutral" as RiskTone,
-    key_events: [],
+    key_events: selectBriefingEvents(calendarEvents),
     risk_themes: [],
     market_snapshot: buildSnapshot(byInstrument),
     intelligence,
