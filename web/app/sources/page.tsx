@@ -12,16 +12,25 @@ import { relativeFromNow } from "@/lib/utils/date";
 export const dynamic = "force-dynamic";
 
 const CATEGORY_TITLE: Record<SourceCategory, { eyebrow: string; title: string }> = {
-  news:       { eyebrow: "News · Macro Headlines",        title: "Overnight Narrative" },
-  calendar:   { eyebrow: "Economic Calendar",             title: "Events & Forecasts" },
-  market:     { eyebrow: "Market Data",                   title: "FX · Rates · Equities · Commodities" },
-  desk:       { eyebrow: "Internal Desk Intelligence",    title: "Proprietary Color" },
-  volatility: { eyebrow: "Volatility · Options",          title: "Implied Vol & Regime" },
-  synthesis:  { eyebrow: "AI Synthesis",                  title: "Briefing Generation" },
+  synthesis:     { eyebrow: "AI Synthesis",                   title: "Briefing Generation" },
+  market:        { eyebrow: "Market Data",                    title: "FX · Rates · Commodities · Vol" },
+  calendar:      { eyebrow: "Economic Calendar",              title: "Events & Forecasts" },
+  central_banks: { eyebrow: "Central Bank Activity",          title: "Fed · ECB · BoE · BoJ · SNB" },
+  geopolitical:  { eyebrow: "Government & Geopolitical Feeds", title: "Executive · Treasury · Trade · Supranational · Energy" },
+  news:          { eyebrow: "News · Macro Headlines",         title: "Overnight Narrative" },
+  desk:          { eyebrow: "Internal Desk Intelligence",     title: "Proprietary Color" },
+  volatility:    { eyebrow: "Volatility · Options",           title: "Implied Vol & Regime" },
 };
 
 const CATEGORY_ORDER: SourceCategory[] = [
-  "synthesis", "news", "calendar", "market", "desk", "volatility",
+  "synthesis",
+  "market",
+  "calendar",
+  "central_banks",
+  "geopolitical",
+  "news",
+  "desk",
+  "volatility",
 ];
 
 const STATUS_COLOR: Record<SourceStatus, string> = {
@@ -112,12 +121,20 @@ function Intro() {
     <Card>
       <CardHeader eyebrow="Operations" title="Connected Feeds" />
       <CardBody density="premium">
-        <p className="body" style={{ maxWidth: 760 }}>
-          The Morning FX &amp; Macro briefing is assembled from five source categories
-          plus a synthesis layer. Each row below maps to an adapter in{" "}
-          <code>app/ingestion/adapters</code>. The scheduler reads this registry, runs
-          each adapter on its declared cadence, and persists normalized rows. A missing
-          source produces a flagged briefing, never a missing briefing.
+        <p className="body" style={{ maxWidth: 820 }}>
+          Every section of the morning briefing is grounded in a public,
+          no-auth source you can audit row by row. The synthesis layer
+          composes commentary STRICTLY over the items below — anything
+          not in this registry is not in the briefing. A failed feed
+          gracefully degrades to "fallback" or "unavailable" status; the
+          briefing renders the available sections and flags the gap
+          rather than hiding it.
+        </p>
+        <p className="body" style={{ maxWidth: 820, marginTop: 8 }}>
+          Status reflects this serverless instance's most recent probe
+          of each feed. Refresh the page to re-poll. Per-feed errors are
+          shown verbatim under <code>last_error</code> in the diagnostic
+          payload at <code>/api/diag</code>.
         </p>
       </CardBody>
     </Card>
@@ -410,13 +427,15 @@ function ReliabilityFootnote() {
             no live integration yet.
           </p>
           <p style={{ marginTop: 10 }}>
-            <strong style={{ color: "var(--text-primary)" }}>Reliability</strong> is the
-            rolling 30-day success rate from <code>ingestion_runs</code>. PHASE 2 rows show
-            "—" because there's no history yet.{" "}
-            <strong style={{ color: "var(--text-primary)" }}>Fallback chain</strong> reads
-            left-to-right; the currently serving link is rendered in primary text. Chains
-            of three (calendar: TE → Investing → ForexFactory) survive two upstream
-            failures without breaking the briefing SLA.
+            <strong style={{ color: "var(--text-primary)" }}>Reliability</strong> shows
+            1.0 when the most recent probe returned items and "—" otherwise. Each row
+            also carries <code>records_last_run</code> in the table (item count) so the
+            desk can see at a glance whether a feed is empty (degraded) or actively
+            populated (live).{" "}
+            <strong style={{ color: "var(--text-primary)" }}>Fallback chain</strong> is
+            only meaningful for sources with declared backup adapters — RSS feeds
+            currently degrade rather than fail over, with the affected section dropping
+            to a desk-authored frame instead.
           </p>
         </div>
       </CardBody>

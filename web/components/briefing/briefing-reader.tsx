@@ -41,6 +41,7 @@ import type {
   Chart as ChartT,
   Headline,
   CBEvent,
+  GeoEvent,
   WhatChanged as WhatChangedT,
 } from "@/lib/types/briefing";
 
@@ -1795,6 +1796,110 @@ function formatHeadlineTime(iso: string): string {
   return `${hh}:${mm}`;
 }
 
+// =================================================================== GEOPOL EVENTS BLOCK
+//
+// Rendered at the top of § 07 Geopolitical Pulse. Each row is one
+// recent item from the government / supranational / commodity-supply
+// feed registry (White House, State, USTR, US Treasury, UK PM, HMT,
+// FCDO, EU Commission, IMF, World Bank, OPEC). Shows time · source ·
+// region · kind · title link, with the desk's market-impact frame
+// underneath high-relevance items. No upstream article body is
+// reproduced — only the link anchor + the classifier-derived tag.
+//
+// Phase 3.3 / Stab-2 (source transparency): this block makes the
+// platform's deepest source layer visible to the user. Every item is
+// directly attributable to an organisation the user can audit.
+
+const GEO_KIND_LABEL: Record<string, string> = {
+  "sanctions": "Sanctions",
+  "tariff": "Tariff",
+  "trade-deal": "Trade",
+  "escalation": "Escalation",
+  "commodity-supply": "Supply",
+  "fiscal-policy": "Fiscal",
+  "emergency": "Emergency",
+  "summit": "Summit",
+  "election": "Election",
+  "leader-speech": "Leader",
+  "policy-statement": "Policy",
+  "press-release": "Release",
+};
+
+const GEO_KIND_BADGE_CLASS: Record<string, string> = {
+  "sanctions": "category-cat-geopolitical",
+  "tariff": "category-cat-policy",
+  "trade-deal": "category-cat-policy",
+  "escalation": "category-cat-geopolitical",
+  "commodity-supply": "category-cat-growth",
+  "fiscal-policy": "category-cat-policy",
+  "emergency": "category-cat-geopolitical",
+  "summit": "category-cat-political",
+  "election": "category-cat-political",
+  "leader-speech": "category-cat-political",
+  "policy-statement": "category-cat-policy",
+  "press-release": "category-cat-growth",
+};
+
+function formatGeoEventTime(iso: string): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return "—";
+  const d = new Date(t);
+  const today = new Date();
+  const sameDay =
+    d.getUTCFullYear() === today.getUTCFullYear() &&
+    d.getUTCMonth() === today.getUTCMonth() &&
+    d.getUTCDate() === today.getUTCDate();
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  if (sameDay) return `${hh}:${mm}`;
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const mon = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${mon} ${hh}:${mm}`;
+}
+
+function GeopolEventRow({ e }: { e: GeoEvent }) {
+  const kindLabel = GEO_KIND_LABEL[e.kind] ?? "Release";
+  const kindCls = GEO_KIND_BADGE_CLASS[e.kind] ?? "category-cat-growth";
+  const showImpact = e.relevance === "high" && !!e.market_impact;
+  return (
+    <div className="geo-event-row">
+      <div className="geo-event-meta">
+        <span className="geo-event-time">{formatGeoEventTime(e.datetime)}</span>
+        <span className="geo-event-source">{e.source}</span>
+        <span className="geo-event-region">{e.region}</span>
+        <span className={cn("category-badge", kindCls)}>{kindLabel}</span>
+        {e.relevance === "high" ? (
+          <span className="geo-event-flag">desk priority</span>
+        ) : null}
+      </div>
+      <div className="geo-event-title">
+        {e.source_url ? (
+          <a href={e.source_url} target="_blank" rel="noopener noreferrer">
+            {e.title}
+          </a>
+        ) : (
+          e.title
+        )}
+      </div>
+      {showImpact ? (
+        <div className="geo-event-impact">{e.market_impact}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function GeopolEventsBlock({ events }: { events: GeoEvent[] | undefined }) {
+  if (!events || events.length === 0) return null;
+  return (
+    <div className="geo-events-block">
+      <div className="geo-events-eyebrow">Government &amp; Geopolitical · Verified Sources</div>
+      <div className="geo-events-list">
+        {events.map((e) => <GeopolEventRow key={e.id} e={e} />)}
+      </div>
+    </div>
+  );
+}
+
 function HeadlineRow({ h }: { h: Headline }) {
   const catLabel = HEADLINE_CATEGORY_LABEL[h.category] ?? "Macro";
   const catCls = HEADLINE_CATEGORY_CLASS[h.category] ?? "category-cat-growth";
@@ -1837,6 +1942,7 @@ function HeadlinesBlock({ headlines }: { headlines: Headline[] | undefined }) {
 function GeopoliticalBlock({ briefing, intel }: { briefing: BriefingRead; intel: Intelligence | null }) {
   const geo: GeopoliticalPulseT | null = intel?.geopolitical ?? null;
   const headlines = intel?.headlines;
+  const geopolEvents = intel?.geopol_events;
 
   // Fallback: build a synthetic set from the local list if backend didn't ship one
   const synthetic = (): GeopoliticalRegionT[] => {
@@ -1863,6 +1969,7 @@ function GeopoliticalBlock({ briefing, intel }: { briefing: BriefingRead; intel:
 
   return (
     <>
+      <GeopolEventsBlock events={geopolEvents} />
       <HeadlinesBlock headlines={headlines} />
 
       {narrative ? (
