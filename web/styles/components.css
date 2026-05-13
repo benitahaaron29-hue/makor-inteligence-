@@ -3559,3 +3559,155 @@
   .no-print { display: none !important; }
 }
 
+/* =============================================================================
+   EDITORIAL REBALANCE — Phase Stab-2.2
+   ---------------------------------------------------------------------------
+   Targeted density tuning so the narrative sections (Macro Regime,
+   Geopolitical Pulse, Economic Calendar, Central Bank Watch, Key Risks)
+   read as the centre of gravity of the report, and the operational
+   sections (Instruments to Watch, Overnight Movers) sit visually
+   subordinate. Pure styling — no JSX structural changes; the cards
+   below pick up the overrides via existing class hooks.
+   ========================================================================== */
+
+/* ----- Instruments to Watch — shrink the card footprint ------------------- */
+/* The .instrument-watch modifier was already on the JSX; these rules cascade
+   AFTER the base .trade-idea rules so the overrides take effect. */
+.trade-idea.instrument-watch {
+  padding: 10px 0;
+  gap: 12px;
+}
+.trade-idea.instrument-watch .trade-idea-direction {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.trade-idea.instrument-watch .trade-idea-theme {
+  font-size: 9px;
+}
+.trade-idea.instrument-watch .trade-idea-rationale {
+  font-size: 12px;
+  line-height: 18px;
+  margin: 4px 0 6px;
+  max-width: var(--layout-research-max-w);
+  color: var(--text-secondary);
+}
+.trade-idea.instrument-watch .trade-idea-meta {
+  grid-template-columns: 70px 1fr;
+  gap: 2px 10px;
+  margin-top: 4px;
+  font-size: 10px;
+}
+.trade-idea.instrument-watch .trade-idea-meta dt {
+  font-size: 8px;
+  padding-top: 1px;
+}
+.trade-idea.instrument-watch .trade-idea-meta dd {
+  font-size: 11px;
+}
+.trade-idea.instrument-watch .trade-idea-rank {
+  font-size: 11px;
+  padding-top: 1px;
+}
+
+/* ----- Geopolitical Pulse — promote the source-attributed block, demote the
+   structural synthetic-intensity rail so it reads as a "continuous watch"
+   footer rather than a primary visual. Targets the rail container via the
+   `.geo-structural` modifier added on the JSX side. ----- */
+.geo-structural {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+  opacity: 0.85;
+}
+.geo-structural-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-eyebrow);
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* ----- Key Risks — tighter row spacing so the closing register reads as a
+   focused punch list rather than a sparse outline. ----- */
+.key-risks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.key-risks-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.key-risks-rank {
+  flex: 0 0 26px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  padding-top: 1px;
+}
+.key-risks-head {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+.key-risks-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+}
+.key-risks-severity {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.key-risks-body {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-editorial);
+  max-width: var(--layout-research-max-w);
+}
+
+/* ----- Economic Calendar — emphasise the "Today's Catalysts" eyebrow at the
+   top of the section so the priority block reads as the headline finding
+   rather than a sub-block. ----- */
+.calendar-catalysts-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-brass);
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Print/export keeps the densified rules — paper output benefits from the
+   tighter spacing too. */
+@media print {
+  .trade-idea.instrument-watch { padding: 6pt 0 !important; }
+  .trade-idea.instrument-watch .trade-idea-rationale {
+    font-size: 9pt !important;
+    line-height: 12pt !important;
+    color: #233452 !important;
+  }
+  .geo-structural { opacity: 1 !important; border-top-color: #C7DAFF !important; }
+  .geo-structural-eyebrow { color: #1F56D1 !important; }
+  .key-risks-row { page-break-inside: avoid; }
+  .key-risks-title { color: #08111F !important; }
+  .key-risks-body { color: #233452 !important; }
+  .calendar-catalysts-eyebrow { color: #8A7140 !important; }
+}
+

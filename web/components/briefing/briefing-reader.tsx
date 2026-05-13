@@ -49,14 +49,27 @@ interface BriefingReaderProps {
   briefing: BriefingRead;
 }
 
+// Section ordering — narrative-led, instruments subordinate.
+// Section IDs are preserved verbatim so existing anchors / share-link
+// fragments continue to resolve; only the order in this array changes.
+// Editorial flow:
+//   01 Macro Regime          — the day's structural read
+//   02 Geopolitical Pulse    — verified-source government / supranational signal
+//   03 Economic Calendar     — today's catalysts
+//   04 Central Bank Watch    — last-14d activity + bank-by-bank view
+//   05 FX Commentary         — asset-class commentary, anchored by the above
+//   06 Volatility            — equity-vol regime
+//   07 Overnight Movers      — market tape, supporting the narrative
+//   08 Instruments to Watch  — desk watchlist
+//   09 Key Risks             — closing thought
 const SECTIONS = [
-  { id: "movers",        num: "§ 01", title: "Overnight Movers" },
-  { id: "regime",        num: "§ 02", title: "Macro Regime" },
-  { id: "fx",            num: "§ 03", title: "FX Commentary" },
-  { id: "vol",           num: "§ 04", title: "Volatility" },
-  { id: "calendar",      num: "§ 05", title: "Economic Calendar" },
-  { id: "central-banks", num: "§ 06", title: "Central Bank Watch" },
-  { id: "geopolitical",  num: "§ 07", title: "Geopolitical Pulse" },
+  { id: "regime",        num: "§ 01", title: "Macro Regime" },
+  { id: "geopolitical",  num: "§ 02", title: "Geopolitical Pulse" },
+  { id: "calendar",      num: "§ 03", title: "Economic Calendar" },
+  { id: "central-banks", num: "§ 04", title: "Central Bank Watch" },
+  { id: "fx",            num: "§ 05", title: "FX Commentary" },
+  { id: "vol",           num: "§ 06", title: "Volatility" },
+  { id: "movers",        num: "§ 07", title: "Overnight Movers" },
   { id: "trades",        num: "§ 08", title: "Instruments to Watch" },
   { id: "risks",         num: "§ 09", title: "Key Risks" },
 ];
@@ -124,33 +137,33 @@ export function BriefingReader({ briefing }: BriefingReaderProps) {
 
           <ExecutiveLede summary={briefing.executive_summary} />
 
-          {/* SECTIONS */}
-          <Section id="movers" num="§ 01" title="Overnight Movers">
-            <OvernightMovers briefing={briefing} intel={intel} />
-          </Section>
-
-          <Section id="regime" num="§ 02" title="Macro Regime">
+          {/* SECTIONS — narrative-led ordering; see SECTIONS comment above */}
+          <Section id="regime" num="§ 01" title="Macro Regime">
             <MacroRegimeBlock briefing={briefing} intel={intel} />
           </Section>
 
-          <Section id="fx" num="§ 03" title="FX Commentary">
-            <FxCommentaryBlock briefing={briefing} intel={intel} />
+          <Section id="geopolitical" num="§ 02" title="Geopolitical Pulse">
+            <GeopoliticalBlock briefing={briefing} intel={intel} />
           </Section>
 
-          <Section id="vol" num="§ 04" title="Volatility">
-            <VolatilityBlock briefing={briefing} intel={intel} />
-          </Section>
-
-          <Section id="calendar" num="§ 05" title="Economic Calendar">
+          <Section id="calendar" num="§ 03" title="Economic Calendar">
             <EconomicCalendarBlock briefing={briefing} intel={intel} />
           </Section>
 
-          <Section id="central-banks" num="§ 06" title="Central Bank Watch">
+          <Section id="central-banks" num="§ 04" title="Central Bank Watch">
             <CentralBankBlock briefing={briefing} intel={intel} />
           </Section>
 
-          <Section id="geopolitical" num="§ 07" title="Geopolitical Pulse">
-            <GeopoliticalBlock briefing={briefing} intel={intel} />
+          <Section id="fx" num="§ 05" title="FX Commentary">
+            <FxCommentaryBlock briefing={briefing} intel={intel} />
+          </Section>
+
+          <Section id="vol" num="§ 06" title="Volatility">
+            <VolatilityBlock briefing={briefing} intel={intel} />
+          </Section>
+
+          <Section id="movers" num="§ 07" title="Overnight Movers">
+            <OvernightMovers briefing={briefing} intel={intel} />
           </Section>
 
           <Section id="trades" num="§ 08" title="Instruments to Watch">
@@ -1452,7 +1465,7 @@ function PriorityEventsBlock({ events }: { events: KeyEvent[] }) {
   return (
     <div className="priority-events">
       <div className="priority-events-header">
-        <span className="priority-events-eyebrow">Today's priority events</span>
+        <span className="calendar-catalysts-eyebrow">Today's Catalysts</span>
         <span className="priority-events-count">
           {events.length} flagged · across {groups.length} {groups.length === 1 ? "session" : "sessions"}
         </span>
@@ -1978,7 +1991,11 @@ function GeopoliticalBlock({ briefing, intel }: { briefing: BriefingRead; intel:
         </div>
       ) : null}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="geo-structural">
+        <span className="geo-structural-eyebrow">
+          Structural themes · continuous desk watch
+        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {regions.map((r) => (
           <div key={r.short} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
@@ -2023,6 +2040,7 @@ function GeopoliticalBlock({ briefing, intel }: { briefing: BriefingRead; intel:
             ) : null}
           </div>
         ))}
+        </div>
       </div>
     </>
   );
@@ -2173,43 +2191,20 @@ function KeyRisksBlock({ briefing, intel }: { briefing: BriefingRead; intel: Int
   };
   return (
     <>
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div className="key-risks-list">
         {risks.map((r) => (
-          <div key={r.rank} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-            <div
-              style={{
-                flex: "0 0 28px",
-                fontFamily: "var(--font-mono)",
-                fontSize: 14,
-                fontWeight: 500,
-                color: SEVERITY_COLOR[r.severity],
-                lineHeight: "22px",
-                paddingTop: 2,
-              }}
-            >
+          <div key={r.rank} className="key-risks-row">
+            <div className="key-risks-rank" style={{ color: SEVERITY_COLOR[r.severity] }}>
               {String(r.rank).padStart(2, "0")}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginBottom: 4 }}>
-                <span className="heading-4">{r.title}</span>
-                <span
-                  className="caption"
-                  style={{
-                    textTransform: "uppercase",
-                    letterSpacing: "0.10em",
-                    color: SEVERITY_COLOR[r.severity],
-                    fontWeight: 600,
-                  }}
-                >
+              <div className="key-risks-head">
+                <span className="key-risks-title">{r.title}</span>
+                <span className="key-risks-severity" style={{ color: SEVERITY_COLOR[r.severity] }}>
                   {r.severity}
                 </span>
               </div>
-              <p
-                className="editorial-body"
-                style={{ fontSize: 14, lineHeight: "22px", maxWidth: "var(--layout-research-max-w)" }}
-              >
-                {r.body}
-              </p>
+              <p className="key-risks-body">{r.body}</p>
             </div>
           </div>
         ))}
