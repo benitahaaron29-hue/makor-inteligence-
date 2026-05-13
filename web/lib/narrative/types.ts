@@ -26,8 +26,8 @@
 export type RiskToneOutput = "risk_on" | "risk_off" | "mixed" | "neutral";
 
 export interface NarrativeCitation {
-  /** "q" / "cal" / "hl" / "cb" — kind of context item. */
-  kind: "q" | "cal" | "hl" | "cb";
+  /** "q" / "cal" / "hl" / "cb" / "geo" — kind of context item. */
+  kind: "q" | "cal" | "hl" | "cb" | "geo";
   /** 1-based id within that kind. */
   id: number;
   /** Which output field used this citation (free-form). */

@@ -46,6 +46,8 @@ import type { Headline } from "@/lib/headlines/types";
 import { getBriefingCBEvents, cbDiagnostics } from "@/lib/central-banks/service";
 import { CB_SPECS, ALL_BANKS } from "@/lib/central-banks/feeds";
 import type { CBEvent } from "@/lib/central-banks/types";
+import { getBriefingGeoEvents, geoDiagnostics } from "@/lib/geopol/service";
+import type { GeoEvent } from "@/lib/geopol/types";
 import { synthesise, narrativeDiagnostics } from "@/lib/narrative/service";
 import { isLLMFieldUsable } from "@/lib/narrative/usable";
 import type { NarrativeOutput } from "@/lib/narrative/types";
@@ -352,6 +354,7 @@ async function buildIntelligence(
   calendarEvents: CalendarEvent[],
   headlines: Headline[],
   cbEvents: CBEvent[],
+  geoEvents: GeoEvent[],
   narrative: NarrativeOutput | null,
 ): Promise<Intelligence> {
   const charts = await buildCharts();
@@ -393,6 +396,17 @@ async function buildIntelligence(
     ? "Public RSS feeds — not yet fetched"
     : Array.from(cbBankStatus.entries())
         .map(([bank, s]) => s.ok > 0 ? `${bank} (${s.count})` : `${bank} — unavailable`)
+        .join(" · ");
+
+  // Geopolitical / government source provenance — per-org success /
+  // failure folded into a single comma-separated string so the
+  // operator can see at a glance which feeds populated today's
+  // briefing context.
+  const geoDiag = geoDiagnostics();
+  const geoSources = geoDiag.per_feed.length === 0
+    ? "Public government / supranational RSS feeds — not yet fetched"
+    : geoDiag.per_feed
+        .map((p) => p.ok ? `${p.source} (${p.count})` : `${p.source} — unavailable`)
         .join(" · ");
 
   // Template content — used when narrative is null OR when a specific
@@ -472,6 +486,7 @@ async function buildIntelligence(
     geopolitical: null,
     headlines,
     cb_events: cbEvents,
+    geopol_events: geoEvents,
     provenance: [
       { section: "regime", sources: ["Yahoo Finance (Vercel-native adapter)"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "fx", sources: ["Yahoo Finance"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
@@ -479,6 +494,7 @@ async function buildIntelligence(
       { section: "central-banks", sources: [cbSources], as_of: cbDiag.last_fetched_at ? cbDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
       { section: "trades", sources: ["Template content + Yahoo Finance reference levels"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "geopolitical", sources: [hlSources], as_of: hlDiag.last_fetched_at ? hlDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
+      { section: "government", sources: [geoSources], as_of: geoDiag.last_fetched_at ? geoDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
     ],
     charts,
   };
@@ -554,6 +570,7 @@ interface AggregatedData {
   calendarEvents: CalendarEvent[];
   headlines: Headline[];
   cbEvents: CBEvent[];
+  geoEvents: GeoEvent[];
   byInstrument: Map<string, MarketQuote>;
 }
 
@@ -567,11 +584,12 @@ const QUOTE_SLUGS = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
  */
 async function aggregateData(): Promise<AggregatedData> {
   const tFetch = Date.now();
-  const [quotes, calendarEvents, headlines, cbEvents] = await Promise.all([
+  const [quotes, calendarEvents, headlines, cbEvents, geoEvents] = await Promise.all([
     Promise.all(QUOTE_SLUGS.map((s) => getQuote(s))),
     getCalendarEvents(),
     getBriefingHeadlines(10),
     getBriefingCBEvents(8),
+    getBriefingGeoEvents(12),
   ]);
   genLog("data-fetched", {
     took_ms: Date.now() - tFetch,
@@ -580,10 +598,11 @@ async function aggregateData(): Promise<AggregatedData> {
     calendar_events: calendarEvents.length,
     headlines: headlines.length,
     cb_events: cbEvents.length,
+    geo_events: geoEvents.length,
   });
   const byInstrument = new Map<string, MarketQuote>();
   for (const q of quotes) byInstrument.set(q.instrument, q);
-  return { quotes, calendarEvents, headlines, cbEvents, byInstrument };
+  return { quotes, calendarEvents, headlines, cbEvents, geoEvents, byInstrument };
 }
 
 /**
@@ -596,8 +615,8 @@ async function assembleBriefing(
   data: AggregatedData,
   narrative: NarrativeOutput | null,
 ): Promise<BriefingRead> {
-  const { calendarEvents, headlines, cbEvents, byInstrument } = data;
-  const intelligence = await buildIntelligence(byInstrument, calendarEvents, headlines, cbEvents, narrative);
+  const { calendarEvents, headlines, cbEvents, geoEvents, byInstrument } = data;
+  const intelligence = await buildIntelligence(byInstrument, calendarEvents, headlines, cbEvents, geoEvents, narrative);
 
   const now = new Date().toISOString();
   const longDate = formatLongDate(dateIso);
@@ -684,6 +703,8 @@ async function assembleBriefing(
       calendar_source: "TradingEconomics",
       headlines_sources: ["BBC", "AP"],
       cb_sources: ["Federal Reserve", "ECB", "BoE", "BoJ", "SNB"],
+      geopol_sources: ["WhiteHouse", "StateDept", "USTreasury", "USTR", "UKPM", "HMTreasury", "UKFCDO", "EUCommission", "IMF", "WorldBank", "OPEC"],
+      geopol_events_in_window: data.geoEvents.length,
       narrative_provider: narrDiag.provider,
       narrative_last_provider: narrDiag.last_provider,
       narrative_model: narrative ? narrDiag.last_model : null,
@@ -745,6 +766,7 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     calendar: data.calendarEvents,
     headlines: data.headlines,
     cb_events: data.cbEvents,
+    geo_events: data.geoEvents,
   });
   const narrDiagSnap = narrativeDiagnostics();
   genLog("narrative-resolved", {

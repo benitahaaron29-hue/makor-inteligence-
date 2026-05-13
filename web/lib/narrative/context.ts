@@ -15,9 +15,11 @@ import type { MarketQuote } from "@/lib/market/types";
 import type { CalendarEvent } from "@/lib/calendar/types";
 import type { Headline } from "@/lib/headlines/types";
 import type { CBEvent } from "@/lib/central-banks/types";
+import type { GeoEvent } from "@/lib/geopol/types";
 import { CB_SPECS, ALL_BANKS } from "@/lib/central-banks/feeds";
 import { meetsDeskFilter as calMeetsDeskFilter } from "@/lib/calendar/classifier";
 import { meetsBriefingFilter as hlMeetsBriefingFilter } from "@/lib/headlines/classifier";
+import { meetsBriefingFilter as geoMeetsBriefingFilter } from "@/lib/geopol/classifier";
 
 export interface ContextDoc {
   /** Raw rendered string passed to the LLM as the user message. */
@@ -28,6 +30,7 @@ export interface ContextDoc {
     calendar: number;
     headlines: number;
     cb_events: number;
+    geo_events: number;
   };
   /** Sorted id pools so the validator knows which citations are valid. */
   valid_ids: {
@@ -35,6 +38,7 @@ export interface ContextDoc {
     cal: number[];
     hl: number[];
     cb: number[];
+    geo: number[];
   };
   /** Hash of the context content — used for the LLM-output cache key. */
   hash: string;
@@ -76,6 +80,10 @@ function fmtCBEvent(e: CBEvent): string {
   return `${e.datetime.slice(0, 10)} ${e.datetime.slice(11, 16)} ${e.bank} · ${e.kind}${speaker} · "${e.title}"`;
 }
 
+function fmtGeoEvent(e: GeoEvent): string {
+  return `${e.datetime.slice(0, 10)} ${e.datetime.slice(11, 16)} ${e.source} [${e.region}/${e.kind}/${e.relevance}] · "${e.title}"`;
+}
+
 // ---------------------------------------------------------------------------
 // Hash (FNV-1a, 32-bit) — small + deterministic, enough for cache keys.
 // ---------------------------------------------------------------------------
@@ -99,6 +107,7 @@ export interface ContextInput {
   calendar: CalendarEvent[];
   headlines: Headline[];
   cb_events: CBEvent[];
+  geo_events: GeoEvent[];
 }
 
 export function buildContext(input: ContextInput): ContextDoc {
@@ -108,10 +117,11 @@ export function buildContext(input: ContextInput): ContextDoc {
   const calendarKept = input.calendar.filter(calMeetsDeskFilter).slice(0, 12);
   const headlinesKept = input.headlines.filter(hlMeetsBriefingFilter).slice(0, 12);
   const cbKept = input.cb_events.slice(0, 12);
+  const geoKept = input.geo_events.filter(geoMeetsBriefingFilter).slice(0, 12);
 
   // 2. Number each kind from 1. The LLM cites against these ids.
   const lines: string[] = [];
-  const valid_ids: ContextDoc["valid_ids"] = { q: [], cal: [], hl: [], cb: [] };
+  const valid_ids: ContextDoc["valid_ids"] = { q: [], cal: [], hl: [], cb: [], geo: [] };
 
   lines.push(`TODAY: ${input.date_iso}`);
   lines.push("");
@@ -160,6 +170,18 @@ export function buildContext(input: ContextInput): ContextDoc {
   }
   lines.push("");
 
+  lines.push("GEOPOLITICAL / GOVERNMENT EVENTS (last 14d, briefing-relevant only):");
+  if (geoKept.length === 0) {
+    lines.push("(none — geopolitical feeds unavailable or no briefing-relevant items)");
+  } else {
+    geoKept.forEach((e, i) => {
+      const id = i + 1;
+      valid_ids.geo.push(id);
+      lines.push(`[geo:${id}] ${fmtGeoEvent(e)}`);
+    });
+  }
+  lines.push("");
+
   // 3. Desk-authored per-bank framing (always available, no upstream
   //    dependency). Gives the LLM the structural context for what each
   //    bank means cross-asset.
@@ -167,6 +189,21 @@ export function buildContext(input: ContextInput): ContextDoc {
   for (const bank of ALL_BANKS) {
     const spec = CB_SPECS[bank];
     lines.push(`- ${spec.bank}: ${spec.market_impact}`);
+  }
+  lines.push("");
+
+  // 4. Desk-authored per-geopolitical-source framing — same pattern as
+  //    the CB frames. Gives the LLM structural context for what each
+  //    organisation's actions mean cross-asset, so unclassified press
+  //    releases still carry interpretive scaffolding.
+  if (geoKept.length > 0) {
+    const orgsSeen = new Set(geoKept.map((e) => e.source));
+    lines.push("DESK PER-SOURCE FRAMES (reference; cite as [geo:N] only when an actual geopolitical item is referenced):");
+    for (const e of geoKept) {
+      if (!orgsSeen.has(e.source)) continue;
+      orgsSeen.delete(e.source);
+      lines.push(`- ${e.source}: ${e.market_impact}`);
+    }
   }
 
   const text = lines.join("\n");
@@ -179,6 +216,7 @@ export function buildContext(input: ContextInput): ContextDoc {
       calendar: calendarKept.length,
       headlines: headlinesKept.length,
       cb_events: cbKept.length,
+      geo_events: geoKept.length,
     },
     valid_ids,
     hash,

@@ -19,7 +19,7 @@ import type { NarrativeOutput, NarrativeCitation, RiskToneOutput } from "./types
 import type { ContextDoc } from "./context";
 
 const VALID_TONES: ReadonlyArray<RiskToneOutput> = ["risk_on", "risk_off", "mixed", "neutral"];
-const VALID_KINDS: ReadonlyArray<NarrativeCitation["kind"]> = ["q", "cal", "hl", "cb"];
+const VALID_KINDS: ReadonlyArray<NarrativeCitation["kind"]> = ["q", "cal", "hl", "cb", "geo"];
 
 // Defensive 2x maximum caps. Any field longer than this is rejected as
 // likely hallucination — institutional briefs are concise by design.

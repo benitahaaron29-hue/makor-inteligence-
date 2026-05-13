@@ -309,6 +309,12 @@ import type { Headline } from "@/lib/headlines/types";
 export type { CBEvent, CBName, CBEventKind } from "@/lib/central-banks/types";
 import type { CBEvent } from "@/lib/central-banks/types";
 
+// Geopolitical / government event canonical types — same re-export
+// pattern. Used by the renderer (Phase 3.3 will surface them) and the
+// generator (passes them into the narrative context).
+export type { GeoEvent, GeoOrg, GeoKind, GeoRelevance } from "@/lib/geopol/types";
+import type { GeoEvent } from "@/lib/geopol/types";
+
 export interface Intelligence {
   strategist_view: StrategistView;
   macro_overview: MacroOverview | null;
@@ -334,6 +340,13 @@ export interface Intelligence {
   // RSS feed (Fed, ECB, BoE, BoJ, SNB). Rendered as a "Recent activity"
   // sub-block inside § 06 Central Bank Watch.
   cb_events?: CBEvent[];
+  // Last-14d geopolitical / government events: sanctions, tariffs,
+  // trade actions, fiscal announcements, leader speeches, summits,
+  // commodity-supply decisions. Pulled from each organisation's own
+  // public RSS feed (White House, State, USTR, US Treasury, UK PM /
+  // HMT / FCDO, EU Commission, IMF, World Bank, OPEC). Phase 3.3 will
+  // surface them in §07 Geopolitical Pulse alongside the headline feed.
+  geopol_events?: GeoEvent[];
   central_banks: CentralBankItem[];
   pair_commentary: PairCommentary[];
   positioning: PositioningNote[];

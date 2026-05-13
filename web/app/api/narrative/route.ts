@@ -21,6 +21,7 @@ import { getQuote } from "@/lib/market/service";
 import { getCalendarEvents } from "@/lib/calendar/service";
 import { getBriefingHeadlines } from "@/lib/headlines/service";
 import { getBriefingCBEvents } from "@/lib/central-banks/service";
+import { getBriefingGeoEvents } from "@/lib/geopol/service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,15 +31,23 @@ export const maxDuration = 60;
 
 export async function GET(_req: NextRequest) {
   const slugs = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
-  const [quotes, calendarEvents, headlines, cbEvents] = await Promise.all([
+  const [quotes, calendarEvents, headlines, cbEvents, geoEvents] = await Promise.all([
     Promise.all(slugs.map((s) => getQuote(s))),
     getCalendarEvents(),
     getBriefingHeadlines(10),
     getBriefingCBEvents(8),
+    getBriefingGeoEvents(12),
   ]);
 
   const date_iso = new Date().toISOString().slice(0, 10);
-  const narrative = await synthesise({ date_iso, quotes, calendar: calendarEvents, headlines, cb_events: cbEvents });
+  const narrative = await synthesise({
+    date_iso,
+    quotes,
+    calendar: calendarEvents,
+    headlines,
+    cb_events: cbEvents,
+    geo_events: geoEvents,
+  });
 
   return NextResponse.json(
     {

@@ -12,10 +12,10 @@
  *     render yet. Use ?probe=1 to actively invoke them.
  *
  *   /api/diag?probe=1
- *     Actively runs market quotes + calendar + headlines + CB services
- *     in the same function instance handling the request, then returns
- *     per-service results + timing. This is the single-call self-test
- *     for "is the data layer actually working?".
+ *     Actively runs market quotes + calendar + headlines + CB + geopol
+ *     services in the same function instance handling the request, then
+ *     returns per-service results + timing. This is the single-call
+ *     self-test for "is the data layer actually working?".
  *
  *   /api/diag?probe=1&narrative=1
  *     Same as probe=1, PLUS forces a fresh narrative synthesis call
@@ -49,6 +49,10 @@ import {
   cbDiagnostics,
   getBriefingCBEvents,
 } from "@/lib/central-banks/service";
+import {
+  geoDiagnostics,
+  getBriefingGeoEvents,
+} from "@/lib/geopol/service";
 import { getQuote } from "@/lib/market/service";
 import { generatorDiagnostics } from "@/lib/briefing/generator";
 
@@ -174,19 +178,46 @@ async function probeCB(): Promise<ProbeResult> {
   }
 }
 
+async function probeGeo(): Promise<ProbeResult> {
+  const t0 = Date.now();
+  try {
+    const events = await getBriefingGeoEvents(12);
+    return {
+      service: "geopol",
+      ok: true,
+      took_ms: Date.now() - t0,
+      result: {
+        count: events.length,
+        first: events[0]
+          ? { org: events[0].org, source: events[0].source, kind: events[0].kind, relevance: events[0].relevance, datetime: events[0].datetime, title: events[0].title }
+          : null,
+        diagnostics: geoDiagnostics(),
+      },
+    };
+  } catch (err) {
+    return {
+      service: "geopol",
+      ok: false,
+      took_ms: Date.now() - t0,
+      result: { error: err instanceof Error ? err.message : String(err) },
+    };
+  }
+}
+
 async function probeNarrative(): Promise<ProbeResult> {
   const t0 = Date.now();
   try {
-    // Build a context from a fresh fetch of all four streams.
+    // Build a context from a fresh fetch of all five streams.
     const slugs = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
-    const [quotes, calendar, headlines, cb_events] = await Promise.all([
+    const [quotes, calendar, headlines, cb_events, geo_events] = await Promise.all([
       Promise.all(slugs.map((s) => getQuote(s))),
       getCalendarEvents(),
       getBriefingHeadlines(10),
       getBriefingCBEvents(8),
+      getBriefingGeoEvents(12),
     ]);
     const date_iso = new Date().toISOString().slice(0, 10);
-    const narrative = await synthesise({ date_iso, quotes, calendar, headlines, cb_events });
+    const narrative = await synthesise({ date_iso, quotes, calendar, headlines, cb_events, geo_events });
     return {
       service: "narrative",
       ok: !!narrative,
@@ -229,6 +260,7 @@ export async function GET(req: NextRequest) {
     calendar: calendarDiagnostics(),
     headlines: headlinesDiagnostics(),
     central_banks: cbDiagnostics(),
+    geopol: geoDiagnostics(),
   };
 
   if (!probe) {
@@ -254,6 +286,7 @@ export async function GET(req: NextRequest) {
     probeCalendar(),
     probeHeadlines(),
     probeCB(),
+    probeGeo(),
   ];
   if (includeNarrative) probeTargets.push(probeNarrative());
 
@@ -279,6 +312,7 @@ export async function GET(req: NextRequest) {
       calendar_after: calendarDiagnostics(),
       headlines_after: headlinesDiagnostics(),
       central_banks_after: cbDiagnostics(),
+      geopol_after: geoDiagnostics(),
       server_time: new Date().toISOString(),
     },
     {
