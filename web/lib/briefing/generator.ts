@@ -46,7 +46,8 @@ import type { Headline } from "@/lib/headlines/types";
 import { getBriefingCBEvents, cbDiagnostics } from "@/lib/central-banks/service";
 import { CB_SPECS, ALL_BANKS } from "@/lib/central-banks/feeds";
 import type { CBEvent } from "@/lib/central-banks/types";
-import { synthesise, narrativeDiagnostics, isLLMFieldUsable } from "@/lib/narrative/service";
+import { synthesise, narrativeDiagnostics } from "@/lib/narrative/service";
+import { isLLMFieldUsable } from "@/lib/narrative/usable";
 import type { NarrativeOutput } from "@/lib/narrative/types";
 
 // ============================================================================
@@ -519,37 +520,60 @@ function genLog(event: string, detail: Record<string, unknown> = {}): void {
   console.log(`[generator] ${event}`, detail);
 }
 
-export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
-  if (isDemoMode()) {
-    // Demo mode is handled at the call-site (briefingsApi serves the bundled
-    // mock instead). This guard is defence-in-depth.
-    throw new Error("generateBriefing: refusing to run in demo mode");
-  }
+// ============================================================================
+// STAGED PIPELINE
+//
+// The original `generateBriefing()` is a single-shot path: aggregate data,
+// call the LLM, assemble the BriefingRead. On Vercel Hobby the LLM step
+// pushes the total request past the function-budget envelope, producing
+// FUNCTION_INVOCATION_TIMEOUT and connection-closed errors.
+//
+// The staged pipeline splits the work across two serverless invocations:
+//
+//   Stage A — shell (this file's `generateBriefingShell`):
+//     Aggregates market quotes + calendar + headlines + CB events,
+//     assembles a complete BriefingRead with `null` narrative. The shell
+//     renders every section the reader can show today; narrative-driven
+//     copy falls back to the existing template wording via orTemplate().
+//     Targets ~1-3s including cold caches.
+//
+//   Stage B — narrative hydration (handled by /api/narrative + client):
+//     The /api/narrative route fetches the same four feeds (cache-hit
+//     fast path), then calls the LLM. The client-side hydrator receives
+//     the NarrativeOutput and merges it back into the rendered briefing
+//     via `mergeNarrativeIntoBriefing()` below.
+//
+// Both stages share the data-aggregation helper and the assembly step so
+// every section, provenance line, generation_metadata field, and
+// diagnostic surfaced before continues to exist — only their timing
+// changes.
+// ============================================================================
 
-  // Validate the date format early so callers can't pass bad input through.
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) {
-    throw new Error(`generateBriefing: invalid date "${dateIso}"`);
-  }
+interface AggregatedData {
+  quotes: MarketQuote[];
+  calendarEvents: CalendarEvent[];
+  headlines: Headline[];
+  cbEvents: CBEvent[];
+  byInstrument: Map<string, MarketQuote>;
+}
 
-  const t0 = Date.now();
-  GENERATOR_CALL_COUNT += 1;
-  GENERATOR_LAST_CALL_AT = new Date().toISOString();
-  const callNumber = GENERATOR_CALL_COUNT;
-  genLog("starting", { date: dateIso, call_number: callNumber });
+const QUOTE_SLUGS = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
 
-  const slugs = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
-
-  // Stage 1 — fetch the structured data first. The narrative service
-  // depends on this output; we can't kick it off until the data is in.
+/**
+ * Stage A.1 — fan-out to every data feed in parallel. Each feed is
+ * cached individually (1-15 min depending on provider) so this runs
+ * fast on warm caches and exits within Vercel's serverless budget even
+ * on cold caches.
+ */
+async function aggregateData(): Promise<AggregatedData> {
   const tFetch = Date.now();
   const [quotes, calendarEvents, headlines, cbEvents] = await Promise.all([
-    Promise.all(slugs.map((s) => getQuote(s))),
+    Promise.all(QUOTE_SLUGS.map((s) => getQuote(s))),
     getCalendarEvents(),
     getBriefingHeadlines(10),
     getBriefingCBEvents(8),
   ]);
   genLog("data-fetched", {
-    call_number: callNumber,
     took_ms: Date.now() - tFetch,
     quotes: quotes.length,
     quotes_with_value: quotes.filter((q) => q.value !== null).length,
@@ -557,40 +581,27 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     headlines: headlines.length,
     cb_events: cbEvents.length,
   });
-
   const byInstrument = new Map<string, MarketQuote>();
   for (const q of quotes) byInstrument.set(q.instrument, q);
+  return { quotes, calendarEvents, headlines, cbEvents, byInstrument };
+}
 
-  // Stage 2 — synthesise the institutional narrative from the structured
-  // context. Returns null when demo-mode is on, when no API key is
-  // configured, or when the LLM call / validation fails. In every
-  // null case the buildIntelligence step falls back to its existing
-  // template content for the affected fields.
-  const tSynth = Date.now();
-  const narrative = await synthesise({
-    date_iso: dateIso,
-    quotes,
-    calendar: calendarEvents,
-    headlines,
-    cb_events: cbEvents,
-  });
-  const narrDiagSnap = narrativeDiagnostics();
-  genLog("narrative-resolved", {
-    call_number: callNumber,
-    took_ms: Date.now() - tSynth,
-    narrative_present: !!narrative,
-    last_result: narrDiagSnap.last_result,
-    last_error: narrDiagSnap.last_error,
-    field_counts: narrDiagSnap.last_field_counts,
-  });
-
+/**
+ * Stage A.2 — given aggregated data + (optionally) a synthesised
+ * narrative, produce the BriefingRead. Used by both `generateBriefing`
+ * (with a narrative) and `generateBriefingShell` (without).
+ */
+async function assembleBriefing(
+  dateIso: string,
+  data: AggregatedData,
+  narrative: NarrativeOutput | null,
+): Promise<BriefingRead> {
+  const { calendarEvents, headlines, cbEvents, byInstrument } = data;
   const intelligence = await buildIntelligence(byInstrument, calendarEvents, headlines, cbEvents, narrative);
 
   const now = new Date().toISOString();
   const longDate = formatLongDate(dateIso);
 
-  // BriefingRead-level template fields. Each is wrapped in orTemplate()
-  // so the LLM narrative can replace any field piece-by-piece.
   const tmplHeadline =
     "Live market reference levels via connected sources. Narrative " +
     "synthesis from the active LLM provider over the assembled context.";
@@ -618,10 +629,6 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     `Brent reference: ${fmtSource(byInstrument.get("Brent"))}. ` +
     `Gold reference: ${fmtSource(byInstrument.get("Gold"))}.`;
 
-  // Narrative diagnostic for the provenance footer. Provider-aware so a
-  // single line communicates which LLM transport was active for today's
-  // synthesis (e.g. "OpenRouter · deepseek/deepseek-chat" vs
-  // "Anthropic · claude-sonnet-4-6").
   const narrDiag = narrativeDiagnostics();
   const providerLabel =
     (narrDiag.last_provider ?? narrDiag.provider) === "openrouter"
@@ -631,17 +638,17 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     narrDiag.provider === "openrouter" ? "OPENROUTER_API_KEY" : "ANTHROPIC_API_KEY";
   const narrativeSource = !narrDiag.key_configured
     ? `${providerLabel} — ${keyEnvName} not configured (using template fallback)`
-    : narrDiag.last_result === "ok"
-      ? `${providerLabel} · ${narrDiag.last_model} (${narrDiag.last_input_tokens}→${narrDiag.last_output_tokens} tokens, ${narrDiag.last_latency_ms}ms)`
-      : narrDiag.last_result === "cache"
+    : narrative
+      ? narrDiag.last_result === "cache"
         ? `${providerLabel} · ${narrDiag.last_model} (cached)`
-        : narrDiag.last_result === "validate-fail"
-          ? `${providerLabel} — output failed validation (${narrDiag.last_error}); using template fallback`
-          : narrDiag.last_result === "api-fail"
-            ? `${providerLabel} — API call failed (${narrDiag.last_error}); using template fallback`
-            : `${providerLabel} — not yet called`;
+        : `${providerLabel} · ${narrDiag.last_model} (${narrDiag.last_input_tokens}→${narrDiag.last_output_tokens} tokens, ${narrDiag.last_latency_ms}ms)`
+      : narrDiag.last_result === "validate-fail"
+        ? `${providerLabel} — output failed validation (${narrDiag.last_error}); using template fallback`
+        : narrDiag.last_result === "api-fail"
+          ? `${providerLabel} — API call failed (${narrDiag.last_error}); using template fallback`
+          : `${providerLabel} — narrative hydrating asynchronously`;
 
-  const briefing: BriefingRead = {
+  return {
     id: `auto-${dateIso}`,
     briefing_date: dateIso,
     briefing_type: "morning_fx_macro",
@@ -693,6 +700,10 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
       // narrative_last_error.
       narrative_field_sources: narrDiag.last_field_sources,
       narrative_field_counts: narrDiag.last_field_counts,
+      // Render stage — "shell" when no narrative is attached (the
+      // browser will hydrate via /api/narrative), "full" when the
+      // server already merged a narrative on the way out.
+      render_stage: narrative ? "full" : "shell",
     },
     desk: "Macro & FX",
     author: "Makor Securities · Macro & FX Desk",
@@ -702,15 +713,88 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     data_provenance: narrative ? "live" : "partial",
     demo_disclosure: narrative
       ? null
-      : `Live market data, calendar, headlines, and central-bank activity all sourced from connected feeds. Narrative synthesis is template content until the active LLM provider's API key (${narrDiag.provider === "openrouter" ? "OPENROUTER_API_KEY" : "ANTHROPIC_API_KEY"}) is configured on the server. Per-section source attribution is shown in the Provenance footer of each block.`,
+      : `Live market data, calendar, headlines, and central-bank activity all sourced from connected feeds. Narrative synthesis hydrates asynchronously after page load; while it loads or if the active LLM provider's API key (${narrDiag.provider === "openrouter" ? "OPENROUTER_API_KEY" : "ANTHROPIC_API_KEY"}) is not configured on the server, narrative-driven sections show the institutional template. Per-section source attribution is shown in the Provenance footer of each block.`,
   };
+}
 
+/**
+ * Full sync path — kept for backend mode and the "Generate now" action
+ * where the caller wants a single-shot brief with the narrative already
+ * baked in. The page-render path uses `generateBriefingShell` instead.
+ */
+export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
+  if (isDemoMode()) {
+    throw new Error("generateBriefing: refusing to run in demo mode");
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) {
+    throw new Error(`generateBriefing: invalid date "${dateIso}"`);
+  }
+
+  const t0 = Date.now();
+  GENERATOR_CALL_COUNT += 1;
+  GENERATOR_LAST_CALL_AT = new Date().toISOString();
+  const callNumber = GENERATOR_CALL_COUNT;
+  genLog("starting", { date: dateIso, call_number: callNumber, mode: "full" });
+
+  const data = await aggregateData();
+
+  const tSynth = Date.now();
+  const narrative = await synthesise({
+    date_iso: dateIso,
+    quotes: data.quotes,
+    calendar: data.calendarEvents,
+    headlines: data.headlines,
+    cb_events: data.cbEvents,
+  });
+  const narrDiagSnap = narrativeDiagnostics();
+  genLog("narrative-resolved", {
+    call_number: callNumber,
+    took_ms: Date.now() - tSynth,
+    narrative_present: !!narrative,
+    last_result: narrDiagSnap.last_result,
+    last_error: narrDiagSnap.last_error,
+    field_counts: narrDiagSnap.last_field_counts,
+  });
+
+  const briefing = await assembleBriefing(dateIso, data, narrative);
   GENERATOR_LAST_DURATION_MS = Date.now() - t0;
   genLog("done", {
     call_number: callNumber,
     took_ms: GENERATOR_LAST_DURATION_MS,
+    mode: "full",
     narrative_present: !!narrative,
     field_counts: narrDiagSnap.last_field_counts,
+  });
+  return briefing;
+}
+
+/**
+ * Shell-only path — aggregates data, assembles the BriefingRead with a
+ * null narrative, returns. No LLM call, so it lands well inside the
+ * Vercel Hobby function budget. The client narrative hydrator picks
+ * up the rest of the work after first paint.
+ */
+export async function generateBriefingShell(dateIso: string): Promise<BriefingRead> {
+  if (isDemoMode()) {
+    throw new Error("generateBriefingShell: refusing to run in demo mode");
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) {
+    throw new Error(`generateBriefingShell: invalid date "${dateIso}"`);
+  }
+
+  const t0 = Date.now();
+  GENERATOR_CALL_COUNT += 1;
+  GENERATOR_LAST_CALL_AT = new Date().toISOString();
+  const callNumber = GENERATOR_CALL_COUNT;
+  genLog("starting", { date: dateIso, call_number: callNumber, mode: "shell" });
+
+  const data = await aggregateData();
+  const briefing = await assembleBriefing(dateIso, data, null);
+  GENERATOR_LAST_DURATION_MS = Date.now() - t0;
+  genLog("done", {
+    call_number: callNumber,
+    took_ms: GENERATOR_LAST_DURATION_MS,
+    mode: "shell",
   });
   return briefing;
 }

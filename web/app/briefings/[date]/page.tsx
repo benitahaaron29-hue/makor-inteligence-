@@ -10,17 +10,19 @@ import { ShareActions } from "@/components/layout/share-actions";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { ErrorState } from "@/components/ui/states";
-import { BriefingReader } from "@/components/briefing/briefing-reader";
+import { NarrativeHydrator } from "@/components/briefing/narrative-hydrator";
 
 import { briefingsApi } from "@/lib/api/briefings";
 import { sourcesApi, type SourceView } from "@/lib/api/sources";
 import type { BriefingRead } from "@/lib/types/briefing";
 
 export const dynamic = "force-dynamic";
-// Cold-cache narrative synthesis can take 5–15s. Give the function a
-// 60s budget so Vercel doesn't kill it before Claude responds — without
-// this declaration Hobby-plan deployments default to 10s and silently
-// fall back to the template, which is the bug pattern we're patching.
+// The page route now resolves to the *shell* briefing (live market /
+// calendar / headlines / CB activity assembled with template content in
+// narrative-driven slots). The LLM call lives in /api/narrative and is
+// fired by the client hydrator after first paint, so this route's
+// budget rarely needs more than a few seconds. 60s is kept as a safety
+// margin for cold-cache RSS / TradingEconomics fetches.
 export const maxDuration = 60;
 
 interface BriefingDetailPageProps {
@@ -123,7 +125,7 @@ export default async function BriefingDetailPage({ params }: BriefingDetailPageP
           </div>
         </div>
       ) : briefing ? (
-        <BriefingReader briefing={briefing} />
+        <NarrativeHydrator briefing={briefing} />
       ) : null}
     </>
   );

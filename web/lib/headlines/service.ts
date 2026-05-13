@@ -23,7 +23,12 @@ import { fetchFeed, type FeedSpec } from "./adapters/rss";
 import { classifyHeadline, meetsBriefingFilter } from "./classifier";
 import type { Headline } from "./types";
 
-const CACHE_TTL_SECONDS = 180;
+// 5-min TTL — public RSS feeds (BBC / AP) refresh on a slow cadence and
+// the shell-render path needs to stay fast on Vercel Hobby. The
+// narrative-hydration request (which calls the LLM) reads from this
+// same cache so a hit there means zero extra latency on the second
+// pass.
+const CACHE_TTL_SECONDS = 300;
 const CACHE_KEY = "headlines::default-set";
 const WINDOW_HOURS = 24;
 const MAX_HEADLINES = 40;

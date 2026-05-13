@@ -17,7 +17,13 @@ import { fetchCBFeed } from "./adapters/rss";
 import { CB_SPECS, ALL_BANKS } from "./feeds";
 import type { CBEvent, CBName, CBSpec } from "./types";
 
-const CACHE_TTL_SECONDS = 300; // 5 min
+// 15-min TTL — central-bank RSS feeds update on a slow cadence (speeches,
+// press releases, occasional decisions) and the cost of refetching them
+// in the briefing's hot path is unwarranted. The staged-render
+// architecture (briefing shell first, narrative hydrated separately)
+// puts CB events in the shell-render path, so a generous TTL keeps the
+// shell well inside Vercel Hobby's serverless function budget.
+const CACHE_TTL_SECONDS = 900; // 15 min
 const CACHE_KEY = "cb::default-set";
 const WINDOW_DAYS = 14;
 const MAX_EVENTS = 60;

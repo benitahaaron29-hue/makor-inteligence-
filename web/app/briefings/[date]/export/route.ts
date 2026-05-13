@@ -14,11 +14,17 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createElement } from "react";
 
 import { BriefingReader } from "@/components/briefing/briefing-reader";
+import { generateBriefing } from "@/lib/briefing/generator";
+import { isDemoMode } from "@/lib/api/demo";
 import { briefingsApi } from "@/lib/api/briefings";
 import { buildExportDocument } from "@/lib/export/document-shell";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+// Cold-cache exports need the LLM call to complete inline (no client
+// hydration in a static document), so give the function the full 60s
+// budget the page routes use.
+export const maxDuration = 60;
 
 export async function GET(
   _req: NextRequest,
@@ -29,9 +35,15 @@ export async function GET(
     return new NextResponse("Invalid date format. Expected YYYY-MM-DD.", { status: 400 });
   }
 
+  // Exports are static documents — the client narrative hydrator can't
+  // run after the file is downloaded, so we bake the LLM-merged briefing
+  // in directly via the full sync path. In demo mode we fall back to the
+  // mock briefing exactly as the page route does.
   let briefing;
   try {
-    briefing = await briefingsApi.byDate(date);
+    briefing = isDemoMode()
+      ? await briefingsApi.byDate(date)
+      : await generateBriefing(date);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return new NextResponse(`Briefing fetch failed: ${msg}`, { status: 502 });

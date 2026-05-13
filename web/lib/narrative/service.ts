@@ -23,6 +23,7 @@ import { buildContext, type ContextInput } from "./context";
 import { NARRATIVE_SYSTEM_PROMPT, buildUserMessage } from "./prompt";
 import { callLLM, llmKeyConfigured, llmModel, llmProviderName } from "./llm";
 import { validateNarrative } from "./validator";
+import { isLLMFieldUsable } from "./usable";
 import {
   NARRATIVE_FIELDS,
   type FieldSource,
@@ -30,6 +31,11 @@ import {
   type NarrativeOutput,
   type NarrativeDiagnostics,
 } from "./types";
+
+// Re-export so downstream code that historically imported the helper
+// from this service module keeps working — the canonical home is now
+// `./usable` (kept dependency-light so it can ship to the client bundle).
+export { isLLMFieldUsable };
 
 const CACHE_TTL_SECONDS = 30 * 60; // 30 min
 const CACHE_KEY_PREFIX = "narrative::";
@@ -61,32 +67,6 @@ function record(
   DIAG.last_result = result;
   DIAG.last_error = error;
   DIAG.key_configured = llmKeyConfigured();
-}
-
-/**
- * Decide whether a single string from the LLM is usable.
- * Rejects empty / whitespace / "source data insufficient" (case-
- * insensitive, with tolerance for trailing punctuation and hyphenation).
- */
-export function isLLMFieldUsable(value: string | undefined | null): boolean {
-  if (typeof value !== "string") return false;
-  const trimmed = value.trim();
-  if (trimmed.length === 0) return false;
-  const norm = trimmed
-    .toLowerCase()
-    .replace(/[-_]+/g, " ")     // "source-data-insufficient" → "source data insufficient"
-    .replace(/[.!?]+$/g, "")     // trailing punctuation
-    .replace(/\s+/g, " ")
-    .trim();
-  if (
-    norm === "source data insufficient" ||
-    norm === "source data is insufficient" ||
-    norm === "insufficient data" ||
-    norm === "insufficient context" ||
-    norm === "data unavailable" ||
-    norm === "n a" || norm === "na"
-  ) return false;
-  return true;
 }
 
 function getNarrativeField(n: NarrativeOutput, path: NarrativeField): string {

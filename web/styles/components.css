@@ -3371,3 +3371,44 @@
   .cb-event-title a { color: #08111F !important; border-bottom: 0 !important; }
   .cb-event-impact { color: #233452 !important; font-size: 9pt !important; line-height: 12pt !important; border-left-color: #1F56D1 !important; }
 }
+
+/* =========================================================================
+   NARRATIVE HYDRATION — loading affordances for the staged-render
+   pipeline. The page renders the shell briefing immediately; a single
+   client component fires /api/narrative and patches the LLM-driven
+   sections in via React state. While that's in flight a discreet
+   editorial strip sits above the masthead; the narrative-driven
+   paragraphs carry a subtle skeleton shimmer so the operator knows
+   which copy is template fallback versus already-final.
+
+   All affordances carry `.no-print` (rule defined below in the print
+   block) so exported PDFs stay clean — only the screen render
+   acknowledges the asynchronous nature of the LLM call.
+   ========================================================================= */
+.narrative-hydration-banner {
+  font-family: var(--font-sans);
+  text-transform: none;
+}
+
+.narrative-hydration-spinner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  border-top-color: var(--accent-brass);
+  display: inline-block;
+  animation: narrativeHydrationSpin 0.9s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes narrativeHydrationSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@media print {
+  .narrative-hydration-banner { display: none !important; }
+  /* General print-hider used by any client-only affordance. */
+  .no-print { display: none !important; }
+}
+

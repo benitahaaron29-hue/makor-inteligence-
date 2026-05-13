@@ -3,11 +3,10 @@ import { briefingsApi } from "@/lib/api/briefings";
 import type { BriefingRead } from "@/lib/types/briefing";
 
 export const dynamic = "force-dynamic";
-// Anthropic Sonnet 4.6 typically returns in 5–15s; on a cold cache the
-// briefing generator needs longer than Vercel's default 10s function
-// budget (Hobby plan default; Pro plan default is already 60). Setting
-// maxDuration here guarantees the LLM call has room to complete before
-// Vercel kills the function and the user sees a templated render.
+// Terminal home now resolves to the *shell* briefing (no LLM call on
+// the page path — that's done client-side via /api/narrative). 60s is
+// kept as a safety margin for cold-cache feed fetches; in steady state
+// this route returns in well under a second.
 export const maxDuration = 60;
 
 /**

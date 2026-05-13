@@ -1,6 +1,6 @@
 import { apiFetch, ApiError } from "./client";
 import { loadMock, withMockFallback, isDemoMode } from "./demo";
-import { generateBriefing } from "@/lib/briefing/generator";
+import { generateBriefing, generateBriefingShell } from "@/lib/briefing/generator";
 import type {
   BriefingRead,
   BriefingSummary,
@@ -119,7 +119,16 @@ export const briefingsApi = {
    * Latest briefing. Mode-resolved:
    *   demo     → bundled mock
    *   backend  → upstream /api/v1/briefings/latest
-   *   vercel   → generateBriefing(todayIsoUtc())
+   *   vercel   → generateBriefingShell(todayIsoUtc())  [staged path]
+   *
+   * Note the Vercel-native path now returns the *shell* — every section
+   * is rendered with live data, but narrative-driven copy (executive
+   * summary, strategist view, macro overview, what-changed, key-takeaways,
+   * fx/rates/equities/commodities commentary) lands as template content.
+   * The client-side narrative hydrator fetches /api/narrative after first
+   * paint and patches those fields in via React state. This keeps the
+   * initial render inside Vercel Hobby's serverless budget; the LLM call
+   * happens in its own invocation with its own 60s window.
    */
   async latest(briefingType?: BriefingType): Promise<BriefingRead | null> {
     return withMockFallback<BriefingRead | null>(
@@ -133,23 +142,22 @@ export const briefingsApi = {
           } catch (err) {
             if (err instanceof ApiError && err.status === 404) return null;
             // Any other error from the configured backend: fall through to
-            // the Vercel-native generator rather than show an error state.
-            // The generator still respects "never fabricate" — its market
+            // the Vercel-native shell generator rather than show an error
+            // state. The shell still respects "never fabricate" — market
             // values come from getQuote() and read "data unavailable"
             // when the upstream feeds are down.
           }
         }
-        return generateBriefing(todayIsoUtc());
+        return generateBriefingShell(todayIsoUtc());
       },
       async () => mockLatest(),
     );
   },
 
   /**
-   * Briefing for a specific date. Same mode resolution as `latest`.
-   * In Vercel-native mode, the generator produces today-shaped content
-   * with the requested date in the header; the briefing's
-   * `demo_disclosure` makes the data-currentness explicit.
+   * Briefing for a specific date. Same mode resolution as `latest`,
+   * same staged-render contract: shell-only on the Vercel-native path
+   * with client-side narrative hydration after first paint.
    */
   async byDate(date: string, briefingType?: BriefingType): Promise<BriefingRead | null> {
     return withMockFallback<BriefingRead | null>(
@@ -162,10 +170,10 @@ export const briefingsApi = {
             return await apiFetch<BriefingRead>(path);
           } catch (err) {
             if (err instanceof ApiError && err.status === 404) return null;
-            // Fall through to the generator (see comment in `latest`).
+            // Fall through to the shell generator (see comment in `latest`).
           }
         }
-        return generateBriefing(date);
+        return generateBriefingShell(date);
       },
       async () => mockByDate(date),
     );
