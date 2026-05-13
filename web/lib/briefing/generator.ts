@@ -429,7 +429,7 @@ async function buildIntelligence(
   const tmplKeyTakeaways = [
     { rank: 1, text: "Live market levels are populated from Yahoo Finance where available; fields without a source read 'data unavailable' rather than fabricated values." },
     { rank: 2, text: "Calendar, headlines, and central-bank activity are now sourced from TradingEconomics, public RSS, and each bank's own feed respectively." },
-    { rank: 3, text: "Narrative synthesis uses Claude Sonnet 4.6 over the assembled context; output cited against context ids, validated before render, falls back to template on failure." },
+    { rank: 3, text: "Narrative synthesis runs over the assembled context via the configured LLM provider (OpenRouter by default; Anthropic available via env var); output cited against context ids, validated before render, falls back to template on failure." },
   ];
 
   return {
@@ -593,7 +593,7 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
   // so the LLM narrative can replace any field piece-by-piece.
   const tmplHeadline =
     "Live market reference levels via connected sources. Narrative " +
-    "synthesis from Anthropic Claude over the assembled context.";
+    "synthesis from the active LLM provider over the assembled context.";
   const tmplExecSummary =
     "Pre-market institutional brief.\n\n" +
     "Live market levels pulled from Yahoo Finance (15-minute delayed for " +
@@ -601,8 +601,9 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     `calendar sourced from TradingEconomics — ${selectBriefingEvents(calendarEvents).length} ` +
     "desk-relevant releases ahead. Headlines + central-bank activity " +
     "pulled from each source's public RSS feed. Narrative synthesis " +
-    "via Claude Sonnet 4.6 when ANTHROPIC_API_KEY is configured; " +
-    "template content otherwise.";
+    "runs via the configured LLM provider (OpenRouter by default; " +
+    "Anthropic available via LLM_PROVIDER env) when the provider's " +
+    "API key is set; template content otherwise.";
   const tmplFx =
     `EUR/USD reference: ${fmtSource(byInstrument.get("EUR/USD"))}. ` +
     `DXY reference: ${fmtSource(byInstrument.get("DXY"))}.`;
@@ -617,19 +618,28 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     `Brent reference: ${fmtSource(byInstrument.get("Brent"))}. ` +
     `Gold reference: ${fmtSource(byInstrument.get("Gold"))}.`;
 
-  // Narrative diagnostic for the provenance footer.
+  // Narrative diagnostic for the provenance footer. Provider-aware so a
+  // single line communicates which LLM transport was active for today's
+  // synthesis (e.g. "OpenRouter · deepseek/deepseek-chat" vs
+  // "Anthropic · claude-sonnet-4-6").
   const narrDiag = narrativeDiagnostics();
+  const providerLabel =
+    (narrDiag.last_provider ?? narrDiag.provider) === "openrouter"
+      ? "OpenRouter"
+      : "Anthropic";
+  const keyEnvName =
+    narrDiag.provider === "openrouter" ? "OPENROUTER_API_KEY" : "ANTHROPIC_API_KEY";
   const narrativeSource = !narrDiag.key_configured
-    ? "Anthropic Claude — ANTHROPIC_API_KEY not configured (using template fallback)"
+    ? `${providerLabel} — ${keyEnvName} not configured (using template fallback)`
     : narrDiag.last_result === "ok"
-      ? `Anthropic Claude (${narrDiag.last_model}, ${narrDiag.last_input_tokens}→${narrDiag.last_output_tokens} tokens, ${narrDiag.last_latency_ms}ms)`
+      ? `${providerLabel} · ${narrDiag.last_model} (${narrDiag.last_input_tokens}→${narrDiag.last_output_tokens} tokens, ${narrDiag.last_latency_ms}ms)`
       : narrDiag.last_result === "cache"
-        ? `Anthropic Claude (${narrDiag.last_model}, cached)`
+        ? `${providerLabel} · ${narrDiag.last_model} (cached)`
         : narrDiag.last_result === "validate-fail"
-          ? `Anthropic Claude — output failed validation (${narrDiag.last_error}); using template fallback`
+          ? `${providerLabel} — output failed validation (${narrDiag.last_error}); using template fallback`
           : narrDiag.last_result === "api-fail"
-            ? `Anthropic Claude — API call failed (${narrDiag.last_error}); using template fallback`
-            : "Anthropic Claude — not yet called";
+            ? `${providerLabel} — API call failed (${narrDiag.last_error}); using template fallback`
+            : `${providerLabel} — not yet called`;
 
   const briefing: BriefingRead = {
     id: `auto-${dateIso}`,
@@ -667,6 +677,8 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
       calendar_source: "TradingEconomics",
       headlines_sources: ["BBC", "AP"],
       cb_sources: ["Federal Reserve", "ECB", "BoE", "BoJ", "SNB"],
+      narrative_provider: narrDiag.provider,
+      narrative_last_provider: narrDiag.last_provider,
       narrative_model: narrative ? narrDiag.last_model : null,
       narrative_result: narrDiag.last_result,
       narrative_key_configured: narrDiag.key_configured,
@@ -690,7 +702,7 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
     data_provenance: narrative ? "live" : "partial",
     demo_disclosure: narrative
       ? null
-      : "Live market data, calendar, headlines, and central-bank activity all sourced from connected feeds. Narrative synthesis is template content until ANTHROPIC_API_KEY is configured on the server. Per-section source attribution is shown in the Provenance footer of each block.",
+      : `Live market data, calendar, headlines, and central-bank activity all sourced from connected feeds. Narrative synthesis is template content until the active LLM provider's API key (${narrDiag.provider === "openrouter" ? "OPENROUTER_API_KEY" : "ANTHROPIC_API_KEY"}) is configured on the server. Per-section source attribution is shown in the Provenance footer of each block.`,
   };
 
   GENERATOR_LAST_DURATION_MS = Date.now() - t0;

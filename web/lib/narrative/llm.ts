@@ -1,141 +1,83 @@
 /**
- * Anthropic Claude API client — minimal, server-only, no SDK dependency.
+ * LLM facade — provider-agnostic entry point for the narrative service.
  *
- * Why direct fetch instead of @anthropic-ai/sdk:
- *   - Zero added dependency to the Vercel bundle
- *   - One file, ~80 LOC, easy to audit
- *   - We only need one endpoint (messages); no streaming, no tools
+ * Selection (server-side env vars, never NEXT_PUBLIC_*):
  *
- * Auth: ANTHROPIC_API_KEY (server-only, NOT NEXT_PUBLIC_*). Reading the
- * env var only here means a build with no key configured fails cleanly
- * at runtime — never at compile time — and the service falls back to
- * the existing template content.
+ *   LLM_PROVIDER=openrouter   → OpenRouter (default when unset)
+ *   LLM_PROVIDER=anthropic    → direct Anthropic Messages API
  *
- * Model: configurable via NARRATIVE_MODEL. Default is Sonnet 4.6, which
- * gives institutional-grade prose at ~3-4× lower cost than Opus.
+ *   LLM_MODEL=<id>            → model override; works across providers
+ *                                 e.g. "deepseek/deepseek-chat" (openrouter)
+ *                                 or "claude-sonnet-4-6" (anthropic)
+ *   NARRATIVE_MODEL=<id>      → back-compat with the previous direct-
+ *                                 Anthropic config; honoured if LLM_MODEL
+ *                                 is unset.
+ *
+ *   OPENROUTER_API_KEY        → required when provider=openrouter
+ *   ANTHROPIC_API_KEY         → required when provider=anthropic
+ *
+ * Everything downstream — context builder, prompt, validator, service
+ * orchestration, 30-min cache, per-field-source map, probe endpoint —
+ * imports from this file and treats `callLLM` as a single uniform
+ * function. Swapping providers is an env-var change, never a code
+ * change downstream.
+ *
+ * Default selection logic: explicit LLM_PROVIDER wins. When unset,
+ * OpenRouter is the default (per platform direction). We do NOT
+ * silently fall back to whichever provider has a key — that would
+ * hide a misconfigured deployment. If LLM_PROVIDER=openrouter but
+ * the key is missing, the service returns null with last_result
+ * "no-key" and the diagnostic surfaces it via /api/diag.
  */
 
-const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages";
-const DEFAULT_MODEL = "claude-sonnet-4-6";
-const ANTHROPIC_VERSION = "2023-06-01";
-const FETCH_TIMEOUT_MS = 30_000;
+import { openrouterProvider } from "./providers/openrouter";
+import { anthropicProvider } from "./providers/anthropic";
+import type {
+  LLMProvider,
+  LLMCallParams,
+  LLMResponse,
+  LLMProviderName,
+} from "./providers/base";
 
-export interface LLMCallParams {
-  system: string;
-  user: string;
-  max_tokens: number;
-  temperature: number;
+export type { LLMCallParams, LLMResponse, LLMProviderName } from "./providers/base";
+
+const PROVIDERS: Record<LLMProviderName, LLMProvider> = {
+  openrouter: openrouterProvider,
+  anthropic: anthropicProvider,
+};
+
+function envProvider(): LLMProviderName | null {
+  const raw = (process.env.LLM_PROVIDER ?? "").trim().toLowerCase();
+  if (raw === "openrouter" || raw === "anthropic") return raw;
+  return null;
 }
 
-export interface LLMResponse {
-  text: string;
-  model: string;
-  input_tokens: number;
-  output_tokens: number;
-  latency_ms: number;
+/** Resolve which provider should be used right now. */
+export function activeProvider(): LLMProvider {
+  const explicit = envProvider();
+  if (explicit) return PROVIDERS[explicit];
+  return openrouterProvider;
 }
 
-interface AnthropicMessage {
-  type: "text";
-  text: string;
-}
-
-interface AnthropicSuccess {
-  id: string;
-  type: "message";
-  role: "assistant";
-  content: AnthropicMessage[];
-  model: string;
-  stop_reason: string | null;
-  usage: { input_tokens: number; output_tokens: number };
-}
-
-interface AnthropicError {
-  type: "error";
-  error: { type: string; message: string };
-}
-
+/** True when the active provider has its API key configured. */
 export function llmKeyConfigured(): boolean {
-  return (process.env.ANTHROPIC_API_KEY ?? "").trim().length > 0;
+  return activeProvider().keyConfigured();
 }
 
+/** Model id the active provider will use for the next call. */
 export function llmModel(): string {
-  const raw = (process.env.NARRATIVE_MODEL ?? "").trim();
-  return raw.length > 0 ? raw : DEFAULT_MODEL;
+  return activeProvider().modelName();
+}
+
+/** Name of the active provider — surfaced in diagnostics + provenance. */
+export function llmProviderName(): LLMProviderName {
+  return activeProvider().name;
 }
 
 /**
- * Call Claude. Throws on network failure, non-2xx, parse error, or
- * empty content. The caller is expected to wrap with a try/catch and
- * fall back to the existing template content on any thrown error.
+ * Call the active LLM provider. Throws on any failure; the narrative
+ * service catches and falls back to the existing template content.
  */
-export async function callClaude(params: LLMCallParams): Promise<LLMResponse> {
-  const key = (process.env.ANTHROPIC_API_KEY ?? "").trim();
-  if (!key) throw new Error("ANTHROPIC_API_KEY not configured");
-
-  const model = llmModel();
-  const body = JSON.stringify({
-    model,
-    max_tokens: params.max_tokens,
-    temperature: params.temperature,
-    system: params.system,
-    messages: [{ role: "user", content: params.user }],
-  });
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  const started_at = Date.now();
-
-  let res: Response;
-  try {
-    res = await fetch(ANTHROPIC_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": ANTHROPIC_VERSION,
-      },
-      cache: "no-store",
-      signal: controller.signal,
-      body,
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`anthropic network: ${msg}`);
-  } finally {
-    clearTimeout(timer);
-  }
-
-  const latency_ms = Date.now() - started_at;
-  const raw = await res.text();
-
-  if (!res.ok) {
-    let detail = `HTTP ${res.status}`;
-    try {
-      const parsed = JSON.parse(raw) as AnthropicError;
-      if (parsed?.error?.message) detail = `${detail}: ${parsed.error.message}`;
-    } catch {
-      /* keep generic detail */
-    }
-    throw new Error(`anthropic ${detail}`);
-  }
-
-  let parsed: AnthropicSuccess;
-  try {
-    parsed = JSON.parse(raw) as AnthropicSuccess;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`anthropic bad JSON: ${msg}`);
-  }
-
-  const text = parsed.content?.[0]?.text ?? "";
-  if (!text) throw new Error("anthropic: empty content");
-
-  return {
-    text,
-    model: parsed.model ?? model,
-    input_tokens: parsed.usage?.input_tokens ?? 0,
-    output_tokens: parsed.usage?.output_tokens ?? 0,
-    latency_ms,
-  };
+export async function callLLM(params: LLMCallParams): Promise<LLMResponse> {
+  return activeProvider().call(params);
 }

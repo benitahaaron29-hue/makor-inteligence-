@@ -21,7 +21,7 @@ import { cacheGet, cacheSet } from "@/lib/market/cache";
 import { isDemoMode } from "@/lib/api/demo";
 import { buildContext, type ContextInput } from "./context";
 import { NARRATIVE_SYSTEM_PROMPT, buildUserMessage } from "./prompt";
-import { callClaude, llmKeyConfigured, llmModel } from "./llm";
+import { callLLM, llmKeyConfigured, llmModel, llmProviderName } from "./llm";
 import { validateNarrative } from "./validator";
 import {
   NARRATIVE_FIELDS,
@@ -45,6 +45,8 @@ const DIAG: NarrativeDiagnostics = {
   last_input_tokens: null,
   last_output_tokens: null,
   key_configured: llmKeyConfigured(),
+  provider: llmProviderName(),
+  last_provider: null,
   last_field_sources: null,
   last_field_counts: null,
   last_context_hash: null,
@@ -181,14 +183,16 @@ export async function synthesise(input: ContextInput): Promise<NarrativeOutput |
     return cached;
   }
 
-  log("info", "calling-claude", {
+  const provider = llmProviderName();
+  log("info", "calling-llm", {
+    provider,
     model: llmModel(),
     contextHash: ctx.hash,
   });
 
   let llm;
   try {
-    llm = await callClaude({
+    llm = await callLLM({
       system: NARRATIVE_SYSTEM_PROMPT,
       user: buildUserMessage(ctx.text),
       max_tokens: MAX_OUTPUT_TOKENS,
@@ -197,17 +201,20 @@ export async function synthesise(input: ContextInput): Promise<NarrativeOutput |
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     record("api-fail", msg);
+    DIAG.last_provider = provider;
     DIAG.last_field_sources = computeFieldSources(null);
     DIAG.last_field_counts = countSources(DIAG.last_field_sources);
-    log("warn", "api-fail", { error: msg });
+    log("warn", "api-fail", { provider, error: msg });
     return null;
   }
 
+  DIAG.last_provider = provider;
   DIAG.last_model = llm.model;
   DIAG.last_latency_ms = llm.latency_ms;
   DIAG.last_input_tokens = llm.input_tokens;
   DIAG.last_output_tokens = llm.output_tokens;
-  log("info", "claude-returned", {
+  log("info", "llm-returned", {
+    provider,
     model: llm.model,
     input_tokens: llm.input_tokens,
     output_tokens: llm.output_tokens,
@@ -253,6 +260,8 @@ export function narrativeDiagnostics(): NarrativeDiagnostics {
     last_input_tokens: DIAG.last_input_tokens,
     last_output_tokens: DIAG.last_output_tokens,
     key_configured: llmKeyConfigured(),
+    provider: llmProviderName(),
+    last_provider: DIAG.last_provider,
     last_field_sources: DIAG.last_field_sources,
     last_field_counts: DIAG.last_field_counts,
     last_context_hash: DIAG.last_context_hash,

@@ -108,8 +108,12 @@ export interface NarrativeDiagnostics {
   last_latency_ms: number | null;
   last_input_tokens: number | null;
   last_output_tokens: number | null;
-  /** True when a real ANTHROPIC_API_KEY is configured on the server. */
+  /** True when the active provider's API key is configured on the server. */
   key_configured: boolean;
+  /** Active LLM transport: "openrouter" or "anthropic" (resolved from LLM_PROVIDER). */
+  provider: "openrouter" | "anthropic";
+  /** Provider used for the most recent invocation. Null when never called. */
+  last_provider: "openrouter" | "anthropic" | null;
   /** Per-field outcome for the most recent narrative pass. */
   last_field_sources: Record<NarrativeField, FieldSource> | null;
   /** Counts of fields that landed in each bucket. Quick "did the LLM do anything?" gauge. */
