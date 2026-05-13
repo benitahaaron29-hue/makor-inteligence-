@@ -39,7 +39,12 @@ export { isLLMFieldUsable };
 
 const CACHE_TTL_SECONDS = 30 * 60; // 30 min
 const CACHE_KEY_PREFIX = "narrative::";
-const MAX_OUTPUT_TOKENS = 2_000;
+// Phase 3.1 — the analytical-pattern prompt asks every commentary
+// sentence to carry a mechanism / linkage / positioning angle, which
+// raises per-section density. 2_500 gives headroom for the 12 prose
+// fields + key_takeaways + citations[] without forcing the model to
+// truncate the cross-asset thesis or the final commentaries.
+const MAX_OUTPUT_TOKENS = 2_500;
 const TEMPERATURE = 0.2;
 
 const DIAG: NarrativeDiagnostics = {
