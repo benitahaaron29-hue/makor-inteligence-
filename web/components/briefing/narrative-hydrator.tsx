@@ -43,7 +43,17 @@ type HydrationPhase =
   | { kind: "loading" }                         // fetch in flight
   | { kind: "ready" }                           // success, LLM content merged
   | { kind: "template"; reason: string }        // fetch returned but no usable narrative
+  | { kind: "timeout" }                         // client-side timeout fired
   | { kind: "error"; message: string };         // network / abort / non-200
+
+/**
+ * Hard client-side ceiling on the /api/narrative call. Sits just under
+ * Vercel Hobby's 60s function budget so a server hang transitions the
+ * banner from "Synthesising…" to "timed out — template content rendered"
+ * rather than spinning indefinitely. Independent of the server-side
+ * LLM_TIMEOUT_MS — both fire defensively.
+ */
+const CLIENT_FETCH_TIMEOUT_MS = 55_000;
 
 interface NarrativeApiResponse {
   narrative: NarrativeOutput | null;
@@ -70,6 +80,12 @@ export function NarrativeHydrator({ briefing }: NarrativeHydratorProps) {
     if (skip) return;
     const controller = new AbortController();
     let cancelled = false;
+    let timedOut = false;
+    const timeoutTimer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, CLIENT_FETCH_TIMEOUT_MS);
+
     fetch("/api/narrative", {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -82,6 +98,7 @@ export function NarrativeHydrator({ briefing }: NarrativeHydratorProps) {
       })
       .then((payload) => {
         if (cancelled) return;
+        clearTimeout(timeoutTimer);
         const narrative = payload.narrative;
         if (narrative) {
           const diagnostics = payload.diagnostics;
@@ -96,6 +113,11 @@ export function NarrativeHydrator({ briefing }: NarrativeHydratorProps) {
       })
       .catch((err) => {
         if (cancelled) return;
+        clearTimeout(timeoutTimer);
+        if (timedOut) {
+          setPhase({ kind: "timeout" });
+          return;
+        }
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.toLowerCase().includes("abort")) return;
         setPhase({ kind: "error", message: msg });
@@ -103,6 +125,7 @@ export function NarrativeHydrator({ briefing }: NarrativeHydratorProps) {
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutTimer);
       controller.abort();
     };
   }, [skip]);
@@ -157,6 +180,18 @@ function NarrativeHydrationBanner({ phase }: { phase: HydrationPhase }) {
         {" · "}
         {phase.reason}
         {" · template content rendered. See /api/diag for provider state."}
+      </div>
+    );
+  }
+
+  if (phase.kind === "timeout") {
+    return (
+      <div
+        className="narrative-hydration-banner narrative-hydration-timeout no-print"
+        style={{ ...baseStyle, borderLeft: "2px solid var(--accent-brass)" }}
+      >
+        <strong style={{ color: "var(--accent-brass)" }}>Narrative request timed out</strong>
+        {" · LLM call exceeded the client budget · template content rendered."}
       </div>
     );
   }

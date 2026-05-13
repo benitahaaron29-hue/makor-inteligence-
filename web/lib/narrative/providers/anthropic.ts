@@ -10,12 +10,11 @@
  */
 
 import type { LLMProvider, LLMCallParams, LLMResponse } from "./base";
-import { resolveModelEnv } from "./base";
+import { resolveLLMTimeoutMs, resolveModelEnv } from "./base";
 
 const ENDPOINT = "https://api.anthropic.com/v1/messages";
 const DEFAULT_MODEL = "claude-sonnet-4-6";
 const ANTHROPIC_VERSION = "2023-06-01";
-const FETCH_TIMEOUT_MS = 30_000;
 
 interface AnthropicSuccess {
   id: string;
@@ -56,7 +55,7 @@ export const anthropicProvider: LLMProvider = {
     });
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), resolveLLMTimeoutMs());
     const started_at = Date.now();
 
     let res: Response;

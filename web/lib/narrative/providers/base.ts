@@ -59,3 +59,21 @@ export function resolveModelEnv(): string | null {
   const raw = (process.env.LLM_MODEL ?? process.env.NARRATIVE_MODEL ?? "").trim();
   return raw.length > 0 ? raw : null;
 }
+
+/**
+ * Resolve the hard fetch timeout for an upstream LLM call. Honoured by
+ * ALL providers so the operator has a single env var to tune.
+ *
+ * Default: 45 seconds. Sits comfortably inside Vercel Hobby's 60-second
+ * function budget while giving the LLM enough room to complete on cold
+ * paths with a dense context. Bump to 50s if cold timeouts keep firing;
+ * never above 55s (response handling + network round-trip needs ~5s
+ * headroom or the route handler itself trips Vercel's hard kill).
+ */
+export function resolveLLMTimeoutMs(): number {
+  const raw = (process.env.LLM_TIMEOUT_MS ?? "").trim();
+  if (!raw) return 45_000;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 5_000 || n > 55_000) return 45_000;
+  return n;
+}

@@ -14,11 +14,10 @@
  */
 
 import type { LLMProvider, LLMCallParams, LLMResponse } from "./base";
-import { resolveModelEnv } from "./base";
+import { resolveLLMTimeoutMs, resolveModelEnv } from "./base";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "deepseek/deepseek-chat";
-const FETCH_TIMEOUT_MS = 30_000;
 
 interface OpenRouterMessage {
   role: "assistant" | "user" | "system";
@@ -93,7 +92,7 @@ export const openrouterProvider: LLMProvider = {
     });
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), resolveLLMTimeoutMs());
     const started_at = Date.now();
 
     let res: Response;

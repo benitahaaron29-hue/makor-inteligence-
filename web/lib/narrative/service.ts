@@ -39,12 +39,14 @@ export { isLLMFieldUsable };
 
 const CACHE_TTL_SECONDS = 30 * 60; // 30 min
 const CACHE_KEY_PREFIX = "narrative::";
-// Phase 3.1 — the analytical-pattern prompt asks every commentary
-// sentence to carry a mechanism / linkage / positioning angle, which
-// raises per-section density. 2_500 gives headroom for the 12 prose
-// fields + key_takeaways + citations[] without forcing the model to
-// truncate the cross-asset thesis or the final commentaries.
-const MAX_OUTPUT_TOKENS = 2_500;
+// Phase Stab-1 — the dense analytical pattern fits inside 1_800 output
+// tokens on observed runs (typical completion ~1_400-1_600 tokens). The
+// lower cap cuts mean generation latency by ~2-4s vs the 2_500 budget
+// from Phase 3.1, which is the dominant cold-path saving when paired
+// with the trimmed prompt + context. If the validator's length caps
+// start rejecting truncated outputs, raise to 2_200 — never above 2_500
+// (the LLM_TIMEOUT_MS envelope assumes a sub-2_000-token completion).
+const MAX_OUTPUT_TOKENS = 1_800;
 const TEMPERATURE = 0.2;
 
 const DIAG: NarrativeDiagnostics = {

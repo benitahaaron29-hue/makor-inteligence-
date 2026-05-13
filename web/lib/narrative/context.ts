@@ -114,10 +114,15 @@ export function buildContext(input: ContextInput): ContextDoc {
   // 1. Filter to desk-relevant items so the LLM doesn't get distracted
   //    by noise. The full feed is still accessible via the section
   //    endpoints — only the briefing context is curated.
-  const calendarKept = input.calendar.filter(calMeetsDeskFilter).slice(0, 12);
-  const headlinesKept = input.headlines.filter(hlMeetsBriefingFilter).slice(0, 12);
-  const cbKept = input.cb_events.slice(0, 12);
-  const geoKept = input.geo_events.filter(geoMeetsBriefingFilter).slice(0, 12);
+  // Stabilisation cap (Phase Stab-1) — trim 12 → 8 across the board.
+  // The per-section briefing filter already promoted the highest-signal
+  // items first; keeping 8 of each (32 total) is enough material for an
+  // institutional brief while shaving 25-35% of input tokens off the
+  // LLM call, which translates directly into lower cold-path latency.
+  const calendarKept = input.calendar.filter(calMeetsDeskFilter).slice(0, 8);
+  const headlinesKept = input.headlines.filter(hlMeetsBriefingFilter).slice(0, 8);
+  const cbKept = input.cb_events.slice(0, 8);
+  const geoKept = input.geo_events.filter(geoMeetsBriefingFilter).slice(0, 8);
 
   // 2. Number each kind from 1. The LLM cites against these ids.
   const lines: string[] = [];
@@ -182,15 +187,20 @@ export function buildContext(input: ContextInput): ContextDoc {
   }
   lines.push("");
 
-  // 3. Desk-authored per-bank framing (always available, no upstream
-  //    dependency). Gives the LLM the structural context for what each
-  //    bank means cross-asset.
-  lines.push("DESK PER-BANK FRAMES (reference; cite as [cb:N] only when an actual CB activity item is referenced):");
-  for (const bank of ALL_BANKS) {
-    const spec = CB_SPECS[bank];
-    lines.push(`- ${spec.bank}: ${spec.market_impact}`);
+  // 3. Desk-authored per-bank framing. Stabilisation cap (Phase Stab-1):
+  //    only emit frames for banks that actually have an item in scope
+  //    today — listing all 5 every call cost ~500 tokens for no
+  //    cross-asset value when the bank had no relevant activity.
+  const banksInScope = new Set(cbKept.map((e) => e.bank));
+  if (banksInScope.size > 0) {
+    lines.push("DESK PER-BANK FRAMES (reference; cite as [cb:N] only when an actual CB activity item is referenced):");
+    for (const bank of ALL_BANKS) {
+      if (!banksInScope.has(bank)) continue;
+      const spec = CB_SPECS[bank];
+      lines.push(`- ${spec.bank}: ${spec.market_impact}`);
+    }
+    lines.push("");
   }
-  lines.push("");
 
   // 4. Desk-authored per-geopolitical-source framing — same pattern as
   //    the CB frames. Gives the LLM structural context for what each
