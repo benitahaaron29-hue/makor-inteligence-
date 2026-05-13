@@ -2257,11 +2257,17 @@
        document-shell.ts:extractMediaPrintBlock).
        ========================================================================= */
     :root {
-      /* Surfaces — paper white + subtle insets for tables / wells */
+      /* Surfaces — paper white + subtle insets for tables / wells.
+         Stab-3.1 added: --surface-research (used by .macro-overview and
+         .priority-events backgrounds — was dark navy → invisible text),
+         --surface-hover, --surface-active. All four go to paper tints. */
       --surface-base:     #ffffff;
       --surface-panel:    #ffffff;
       --surface-inset:    #F5F7FA;
       --surface-sunken:   #EBF0F7;
+      --surface-research: #F5F7FA;
+      --surface-hover:    #EBF0F7;
+      --surface-active:   #DEE5F1;
 
       /* Borders — hairline navies for institutional rule lines */
       --border-subtle:    #DEE5F1;
@@ -2280,16 +2286,32 @@
       --text-editorial:   #0D1828;
       --text-accent:      #1F56D1;
 
-      /* Brand accents kept tonally but adjusted for paper contrast */
+      /* Brand accents — full Makor brand ramp adjusted for paper.
+         The 200/300/500 stay as the legible brand blue; 700-900 keep
+         their darker tones (used as bordered emphasis on white); 950 is
+         redefined from a navy *background* fill to a light brand tint
+         so .category-cat-monetary renders as text-on-light not text-on-dark. */
       --makor-200:        #1F56D1;
       --makor-300:        #1F56D1;
+      --makor-500:        #1F56D1;
+      --makor-700:        #0E3686;
+      --makor-800:        #0A2A6A;
+      --makor-900:        #06204F;
+      --makor-950:        #EBF2FF;
       --accent-brass:     #8A7140;
-      --accent-brass-soft:#C7B07A;
+      --accent-brass-soft:#F5EFE0;
 
-      /* Semantic colours — kept saturated enough to survive a B/W copier */
+      /* Semantic colours + their *-soft background pairs. Dark-theme
+         tokens.css uses navy-tinted *-soft variants (e.g. bid-soft is
+         dark forest green) that become invisible on white. Print-safe
+         variants are light tints that pair with the bolder text. */
       --bid:              #2E8540;
+      --bid-soft:         #E6F4EA;
       --offer:            #B5263A;
+      --offer-soft:       #FBEAEC;
       --warning:          #8A7140;
+      --warning-soft:     #FBF1E5;
+      --alert:            #B5263A;
       --neutral:          #4B5B72;
       --info:             #1F56D1;
     }
@@ -2427,6 +2449,118 @@
       color: #4B5B72 !important;
       border-top-color: #C7DAFF !important;
     }
+
+    /* =========================================================================
+       STAB-3.1 — explicit paper rules for the editorial blocks that were
+       rendering dark-on-dark because their background tokens were not
+       covered by the :root override above. These belt-and-braces rules
+       guarantee paper-safe rendering regardless of inline-style or
+       specificity edge cases.
+       ========================================================================= */
+
+    /* Macro Overview (§ 01 anchor block) */
+    .macro-overview {
+      background: #F5F7FA !important;
+      border: 0.5pt solid #C7DAFF !important;
+      border-left: 2pt solid #1F56D1 !important;
+      color: #0D1828 !important;
+    }
+    .macro-overview-eyebrow { color: #1F56D1 !important; }
+    .macro-overview-block { border-left-color: #C7DAFF !important; }
+    .macro-overview-label { color: #1F56D1 !important; }
+    .macro-overview-text  { color: #0D1828 !important; }
+
+    /* Priority Events / Today's Catalysts header strip (§ 03) */
+    .priority-events {
+      background: #F5F7FA !important;
+      border: 0.5pt solid #C7DAFF !important;
+      border-left: 2pt solid #B5263A !important;
+      color: #0D1828 !important;
+    }
+    .priority-events-eyebrow,
+    .calendar-catalysts-eyebrow { color: #8A7140 !important; }
+    .priority-events-count { color: #4B5B72 !important; }
+
+    /* Session-group separator inside Priority Events */
+    .session-group-header { border-bottom-color: #C7DAFF !important; }
+    .session-group-tag {
+      color: #1F56D1 !important;
+      border-color: #C7DAFF !important;
+      background: #ffffff !important;
+    }
+    .session-group-window { color: #4B5B72 !important; }
+
+    /* Priority-event rows */
+    .priority-event { border-bottom: 0.4pt dashed #C7DAFF !important; }
+    .priority-event-p1 {
+      background: #FBEAEC !important;
+      border-left: 1.5pt solid #B5263A !important;
+    }
+    .priority-event-time .time     { color: #08111F !important; }
+    .priority-event-p1 .priority-event-time .time { color: #B5263A !important; }
+    .priority-event-time .time-zone { color: #4B5B72 !important; }
+    .priority-event-time .region   { color: #233452 !important; }
+    .priority-event-title          { color: #08111F !important; }
+    .priority-event-focus          { color: #233452 !important; }
+    .priority-event-pairs          { color: #233452 !important; }
+    .priority-event-speaker        { color: #4B5B72 !important; }
+    .priority-event-watch {
+      color: #B5263A !important;
+      background: #FBEAEC !important;
+      border-color: #B5263A !important;
+    }
+
+    /* Priority tag pills (P1 / P2 / P3 / P4) */
+    .priority-tag { background: #ffffff !important; }
+    .prio-p1 { color: #B5263A !important; border-color: #B5263A !important; background: #FBEAEC !important; }
+    .prio-p2 { color: #8A7140 !important; border-color: #C7B07A !important; }
+    .prio-p3 { color: #1F56D1 !important; border-color: #C7DAFF !important; }
+    .prio-p4 { color: #4B5B72 !important; border-color: #DEE5F1 !important; }
+
+    /* Vol tags */
+    .vol-high { color: #B5263A !important; }
+    .vol-med  { color: #8A7140 !important; }
+    .vol-low  { color: #4B5B72 !important; }
+
+    /* Category badges — paper-safe palette */
+    .category-badge { background: #ffffff !important; }
+    .category-cat-inflation    { color: #8A7140 !important; background: #FBF1E5 !important; border-color: #C7B07A !important; }
+    .category-cat-monetary     { color: #1F56D1 !important; background: #EBF2FF !important; border-color: #C7DAFF !important; }
+    .category-cat-auction      { color: #233452 !important; background: #F5F7FA !important; border-color: #C7DAFF !important; }
+    .category-cat-labour       { color: #2E8540 !important; background: #E6F4EA !important; border-color: #A3D4B3 !important; }
+    .category-cat-opec         { color: #B5263A !important; background: #FBEAEC !important; border-color: #B5263A !important; }
+    .category-cat-growth       { color: #233452 !important; background: #F5F7FA !important; border-color: #DEE5F1 !important; }
+    .category-cat-political    { color: #8A7140 !important; background: #F5EFE0 !important; border-color: #C7B07A !important; }
+    .category-cat-geopolitical { color: #B5263A !important; background: #FBEAEC !important; border-color: #B5263A !important; }
+    .category-cat-policy       { color: #08111F !important; background: #DEE5F1 !important; border-color: #8FA0BC !important; }
+
+    /* Risk Scenarios grid (used inside § 01 Macro Regime) */
+    .risk-scenarios-eyebrow { color: #1F56D1 !important; }
+    .risk-scenario {
+      background: #F5F7FA !important;
+      border: 0.5pt solid #C7DAFF !important;
+      color: #0D1828 !important;
+    }
+    .risk-scenario-name    { color: #08111F !important; }
+    .risk-scenario-prob    { color: #1F56D1 !important; }
+    .risk-scenario-trigger { border-bottom-color: #C7DAFF !important; }
+    .risk-scenario-label   { color: #1F56D1 !important; }
+    .risk-scenario-value   { color: #08111F !important; }
+    .risk-scenario-impacts dt { color: #1F56D1 !important; }
+    .risk-scenario-impacts dd { color: #233452 !important; }
+
+    /* Cross-asset grid cells (used inside § 01 Macro Regime) */
+    .crossasset-grid > .crossasset-cell {
+      background: #F5F7FA !important;
+      border: 0.5pt solid #C7DAFF !important;
+    }
+    .crossasset-cell-title { color: #1F56D1 !important; }
+    .crossasset-cell-body  { color: #233452 !important; }
+
+    /* TickerChip directional colours inside § 01's regime table */
+    .data-pos { color: #2E8540 !important; }
+    .data-neg { color: #B5263A !important; }
+    .data-neu { color: #4B5B72 !important; }
 
     /* Only the print masthead + signoff are visible on paper. */
     .print-only { display: block !important; }
