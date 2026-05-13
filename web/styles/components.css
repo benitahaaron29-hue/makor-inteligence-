@@ -3680,6 +3680,34 @@
   max-width: var(--layout-research-max-w);
 }
 
+/* Sub-tags rendered below each risk body — the institutional desk
+   register's "cross-asset readthrough" and "escalates if" framing.
+   Visually a compact label + body row, mirroring the trade-idea-meta
+   structure but tuned for editorial reading rather than tabular data. */
+.key-risks-tag {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 8px 12px;
+  margin-top: 6px;
+  max-width: var(--layout-research-max-w);
+  align-items: baseline;
+}
+.key-risks-tag-label {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-eyebrow);
+  padding-top: 1px;
+}
+.key-risks-tag-body {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--text-secondary);
+}
+
 /* ----- Economic Calendar — emphasise the "Today's Catalysts" eyebrow at the
    top of the section so the priority block reads as the headline finding
    rather than a sub-block. ----- */
@@ -3708,6 +3736,8 @@
   .key-risks-row { page-break-inside: avoid; }
   .key-risks-title { color: #08111F !important; }
   .key-risks-body { color: #233452 !important; }
+  .key-risks-tag-label { color: #4B5B72 !important; font-size: 8pt !important; }
+  .key-risks-tag-body { color: #233452 !important; font-size: 9pt !important; line-height: 12pt !important; }
   .calendar-catalysts-eyebrow { color: #8A7140 !important; }
 }
 

@@ -1228,7 +1228,12 @@ function VolatilityBlock({ briefing, intel }: { briefing: BriefingRead; intel: I
 function EconomicCalendarBlock({ briefing, intel }: { briefing: BriefingRead; intel: Intelligence | null }) {
   const events = briefing.key_events ?? [];
   const prov = provenanceFor("calendar", intel);
-  const priorityEvents = priorityEventsFrom(events, 6);
+  // Today's Catalysts — unified stream: scheduled data releases + recent
+  // geopolitical / government activity + recent high-signal CB events.
+  // The full data table below still renders only `events` so the
+  // comprehensive economic-release reference remains intact.
+  const catalysts = buildCatalysts(briefing, intel);
+  const priorityEvents = priorityEventsFrom(catalysts, 8);
 
   return (
     <>
@@ -1336,6 +1341,121 @@ function priorityEventsFrom(events: KeyEvent[], limit = 5): KeyEvent[] {
       .map((x) => x.e);
   }
   return scored.slice(0, limit).map((x) => x.e);
+}
+
+// ============================================================================
+// TODAY'S CATALYSTS — unified catalyst feed for § 03 Economic Calendar.
+// ============================================================================
+//
+// A real macro/FX desk doesn't read "tier-1 economic releases" alone — it
+// reads ALL catalysts that can move FX, rates, commodities, or risk
+// sentiment today, INCLUDING:
+//   - scheduled data releases (briefing.key_events, from TradingEconomics)
+//   - geopolitical / government events (sanctions, tariffs, summits,
+//     escalation, OPEC, fiscal — sourced from the geopol feed registry)
+//   - upcoming or just-published central-bank activity (statements,
+//     press conferences, testimony, minutes — sourced from each bank's
+//     own RSS feed)
+//
+// buildCatalysts unifies the three streams into one KeyEvent[]-shaped
+// list, dropping low-relevance noise and stale items. The result is fed
+// into the existing PriorityEventsBlock renderer — no new renderer
+// abstractions; the existing badge / session / priority logic just
+// works against the merged shape.
+//
+// The full data table at the bottom of the section continues to render
+// only briefing.key_events (the comprehensive scheduled-data reference),
+// so the section as a whole reads: "today's catalysts (unified)" up top,
+// "scheduled data releases (reference)" below.
+function geoKindToCategory(k: string): string {
+  switch (k) {
+    case "sanctions":
+    case "escalation":
+      return "geopolitical";
+    case "tariff":
+    case "trade-deal":
+    case "policy-statement":
+    case "fiscal-policy":
+      return "policy";
+    case "commodity-supply":
+      return "growth";
+    case "leader-speech":
+    case "summit":
+    case "election":
+    case "emergency":
+      return "political";
+    default:
+      return "political";
+  }
+}
+
+const CB_HIGH_SIGNAL_KINDS = new Set<string>([
+  "statement",
+  "press-conf",
+  "testimony",
+  "minutes",
+]);
+
+function buildCatalysts(
+  briefing: BriefingRead,
+  intel: Intelligence | null,
+): KeyEvent[] {
+  const all: KeyEvent[] = [...(briefing.key_events ?? [])];
+
+  const now = Date.now();
+  const geoCutoff = now - 48 * 60 * 60 * 1000; // last 48h
+  const cbCutoff = now - 36 * 60 * 60 * 1000;  // last 36h (slightly tighter)
+
+  // Geopolitical / government events → KeyEvent shape
+  for (const g of intel?.geopol_events ?? []) {
+    if (g.relevance === "low") continue;
+    const t = Date.parse(g.datetime);
+    if (!Number.isFinite(t) || t < geoCutoff) continue;
+    const isHigh = g.relevance === "high";
+    all.push({
+      time_utc: g.datetime.slice(11, 16),
+      region: g.region,
+      event: g.title.length > 120 ? g.title.slice(0, 117) + "…" : g.title,
+      importance: isHigh ? "high" : "medium",
+      forecast: null,
+      previous: null,
+      speaker: null,
+      topic: g.kind,
+      category: geoKindToCategory(g.kind),
+      // Promote high-relevance geopol items to desk_critical so they
+      // surface as P1 in PriorityEventsBlock and inherit the existing
+      // "Watch closely" treatment.
+      sensitivity: isHigh ? "desk_critical" : "high",
+      pairs_affected: null,
+      vol_impact: null,
+      desk_focus: g.market_impact,
+    });
+  }
+
+  // Central-bank high-signal activity → KeyEvent shape
+  for (const c of intel?.cb_events ?? []) {
+    if (!CB_HIGH_SIGNAL_KINDS.has(c.kind)) continue;
+    const t = Date.parse(c.datetime);
+    if (!Number.isFinite(t) || t < cbCutoff) continue;
+    all.push({
+      time_utc: c.datetime.slice(11, 16),
+      region: c.bank,
+      event: c.title.length > 120 ? c.title.slice(0, 117) + "…" : c.title,
+      importance: "high",
+      forecast: null,
+      previous: null,
+      speaker: c.speaker,
+      topic: c.kind,
+      category: "monetary",
+      sensitivity:
+        c.kind === "statement" || c.kind === "press-conf" ? "desk_critical" : "high",
+      pairs_affected: null,
+      vol_impact: null,
+      desk_focus: c.market_impact,
+    });
+  }
+
+  return all;
 }
 
 function sessionTagFor(timeUtc: string): { label: string; cls: string } {
@@ -2115,63 +2235,305 @@ function InstrumentWatchCard({ watch }: { watch: InstrumentWatch }) {
 }
 
 // =================================================================== § 09 KEY RISKS
+//
+// Institutional desk risk register. Each entry follows the strategist
+// frame: (1) the risk itself, (2) why it matters, (3) which assets /
+// markets react, (4) what escalates or de-escalates the risk. Risks are
+// derived deterministically from the actual ingestion layer (geopol
+// events + calendar + CB activity + headlines) via a small pattern
+// table — no LLM call, no fabrication. When the data doesn't trigger
+// any pattern, the register falls back to whatever the AI narrative
+// layer supplied via intel.risk_warnings + briefing.risk_themes.
 
 interface Risk {
   rank: number;
   title: string;
   severity: "high" | "medium" | "low";
   body: string;
+  cross_asset: string;
+  escalates_if: string;
 }
 
-function buildRisks(briefing: BriefingRead, intel: Intelligence | null): Risk[] {
-  const risks: Risk[] = [];
+interface RiskCtx {
+  briefing: BriefingRead;
+  geo: GeoEvent[];
+  cb: CBEvent[];
+  events: KeyEvent[];
+  headlines: Headline[];
+}
 
-  // Pull risk warnings from intel first (richer narrative)
-  if (intel) {
-    intel.risk_warnings.forEach((w) => {
+interface RiskPattern {
+  id: string;
+  match: (ctx: RiskCtx) => string | null; // returns trigger evidence string, or null
+  build: (ctx: RiskCtx, trigger: string) => Omit<Risk, "rank">;
+}
+
+const KEY_EVENT_PATTERNS = {
+  inflation: /\b(CPI|core CPI|PCE|core PCE|HICP|RPI|inflation)\b/i,
+  growth:    /\b(GDP|NFP|non-?farm|payrolls|ISM|PMI|retail sales|durable goods|consumer (confidence|sentiment))\b/i,
+  jobs:      /\b(NFP|non-?farm|payrolls|unemployment|jobless)\b/i,
+  auction:   /\b(auction|treasury (sale|issuance)|gilt issuance|bund issuance|JGB issuance|coupon)\b/i,
+};
+
+const RISK_PATTERNS: RiskPattern[] = [
+  // ---- Tariff escalation ----------------------------------------------
+  {
+    id: "tariff",
+    match: (c) => {
+      const g = c.geo.find((g) => g.kind === "tariff");
+      if (g) return `${g.source} · ${g.title}`;
+      const h = c.headlines.find((h) => h.category === "tariffs-trade" && h.relevance === "high");
+      if (h) return `${h.source} · ${h.title}`;
+      return null;
+    },
+    build: (_c, trigger) => ({
+      title: "Tariff escalation risk",
+      severity: "high",
+      body: `Trade-policy action is in scope (${trigger}). The desk watches for a shift from rhetoric to scheduled implementation, particularly Section-301 expansion or a retaliatory response from a trading partner.`,
+      cross_asset:
+        "USD bid against China-exposed FX (CNH, KRW, AUD); MXN sensitive on USMCA carve-outs; breakevens steeper on cost-pass-through; growth-sensitive cyclicals weighed.",
+      escalates_if:
+        "fresh Section-301 list, retaliatory tariffs, breakdown of trade talks, or a sudden enforcement action by USTR / Treasury OFAC.",
+    }),
+  },
+
+  // ---- Sanctions repricing -------------------------------------------
+  {
+    id: "sanctions",
+    match: (c) => {
+      const g = c.geo.find((g) => g.kind === "sanctions");
+      if (g) return `${g.source} · ${g.title}`;
+      const h = c.headlines.find((h) => h.category === "sanctions" && h.relevance === "high");
+      if (h) return `${h.source} · ${h.title}`;
+      return null;
+    },
+    build: (_c, trigger) => ({
+      title: "Sanctions / OFAC repricing risk",
+      severity: "high",
+      body: `An active sanctions track is in the desk's scope (${trigger}). Designations and secondary-sanctions extensions can move EM-FX, oil, and gold faster than the underlying announcement copy suggests.`,
+      cross_asset:
+        "EM-FX risk premium widens (RUB-proxy, TRY, ZAR most sensitive); Brent bid on supply concerns; gold catches a flight-to-quality bid; CHF / JPY firmer.",
+      escalates_if:
+        "broader package, secondary-sanctions extension to third countries, or asset-freeze enforcement on systemic counterparties.",
+    }),
+  },
+
+  // ---- Energy supply disruption --------------------------------------
+  {
+    id: "energy",
+    match: (c) => {
+      const g = c.geo.find((g) => g.kind === "commodity-supply");
+      if (g) return `${g.source} · ${g.title}`;
+      const h = c.headlines.find((h) => h.category === "energy-opec" && h.relevance === "high");
+      if (h) return `${h.source} · ${h.title}`;
+      return null;
+    },
+    build: (_c, trigger) => ({
+      title: "Energy supply disruption risk",
+      severity: "high",
+      body: `Supply-side oil signal is in the picture (${trigger}). Brent's geopolitical risk premium and the front-month / second-month spread are the cleanest readouts; equity-vol typically lags by a session.`,
+      cross_asset:
+        "Brent + diesel cracks bid; CAD / NOK supported, MXN partially; breakevens steeper; duration-sensitive rates feel the inflation pass-through; energy equities outperform.",
+      escalates_if:
+        "OPEC+ output cut, pipeline closure, escalation in the Strait of Hormuz, or a tanker / refinery event that widens the supply-disruption premium.",
+    }),
+  },
+
+  // ---- Geopolitical escalation ---------------------------------------
+  {
+    id: "escalation",
+    match: (c) => {
+      const g = c.geo.find((g) => g.kind === "escalation");
+      if (g) return `${g.source} · ${g.title}`;
+      const h = c.headlines.find((h) => h.category === "war-conflict" && h.relevance === "high");
+      if (h) return `${h.source} · ${h.title}`;
+      return null;
+    },
+    build: (_c, trigger) => ({
+      title: "Geopolitical escalation risk",
+      severity: "high",
+      body: `An escalation thread is live (${trigger}). The desk treats safe-haven flow and the oil risk premium as the leading indicators; equity-vol and EM-FX confirm a session later.`,
+      cross_asset:
+        "JPY / CHF / gold bid on safe-haven flow; oil risk premium widens; risk-sensitive EMFX (ZAR, TRY, BRL) sells off; VIX higher.",
+      escalates_if:
+        "kinetic action, sanctions tightening, breakdown of ceasefire / negotiations, or a credible threat to a critical commodity corridor.",
+    }),
+  },
+
+  // ---- Central-bank repricing ----------------------------------------
+  {
+    id: "cb-repricing",
+    match: (c) => {
+      // Look for upcoming or just-published high-signal CB events.
+      const now = Date.now();
+      const window = 36 * 60 * 60 * 1000;
+      const hit = c.cb.find((e) => {
+        if (!CB_HIGH_SIGNAL_KINDS.has(e.kind)) return false;
+        const t = Date.parse(e.datetime);
+        return Number.isFinite(t) && Math.abs(now - t) <= window;
+      });
+      if (hit) return `${hit.bank} · ${hit.title}`;
+      // Or a scheduled FOMC / ECB / BoE / BoJ event in today's calendar.
+      const calHit = c.events.find((e) =>
+        /\b(FOMC|ECB|BoE|BoJ|MPC|Fed|rate decision)\b/i.test(e.event) &&
+        e.importance.toLowerCase() === "high",
+      );
+      if (calHit) return `${calHit.region} · ${calHit.event} ${calHit.time_utc}`;
+      return null;
+    },
+    build: (_c, trigger) => ({
+      title: "Central-bank repricing risk",
+      severity: "high",
+      body: `Policy-path repricing is live (${trigger}). Forward-guidance language carries more cross-asset signal than the rate level itself; the desk watches vote-split, dot-plot drift, and any new conditioning language on services inflation or wage data.`,
+      cross_asset:
+        "Front-end yields lead; USD strength / softness propagates to EUR/USD and EM-FX carry; growth-sensitive equities and duration-sensitive sectors most reactive; commodity-bloc FX a derivative bet.",
+      escalates_if:
+        "hawkish surprise in forward guidance, dot-plot drift, or a non-consensus vote-split that signals a regime shift in the reaction function.",
+    }),
+  },
+
+  // ---- Fiscal / debt-ceiling -----------------------------------------
+  {
+    id: "fiscal",
+    match: (c) => {
+      const g = c.geo.find((g) => g.kind === "fiscal-policy");
+      if (g) return `${g.source} · ${g.title}`;
+      const h = c.headlines.find((h) => h.category === "fiscal-policy" && h.relevance === "high");
+      if (h) return `${h.source} · ${h.title}`;
+      return null;
+    },
+    build: (_c, trigger) => ({
+      title: "Fiscal policy / debt-ceiling risk",
+      severity: "medium",
+      body: `Sovereign-fiscal direction is in scope (${trigger}). Issuance calendars, ratings-agency commentary, and ministerial statements are the operational signals; the cleanest readout is the back-end of the relevant curve and the sovereign CDS spread.`,
+      cross_asset:
+        "Long-end yields widen; sovereign-spread risk premium widens (BTP-Bund, Gilt-Bund); domestic-bias FX (GBP, EUR-periphery proxy) under pressure; safe-haven duration catches a defensive bid.",
+      escalates_if:
+        "missed fiscal milestone, ratings action, stalled appropriations, or a coupon-heavy auction calendar coinciding with thin liquidity.",
+    }),
+  },
+
+  // ---- Sovereign issuance / liquidity --------------------------------
+  {
+    id: "auction",
+    match: (c) => {
+      const e = c.events.find((e) => KEY_EVENT_PATTERNS.auction.test(e.event));
+      if (e) return `${e.region} · ${e.event} ${e.time_utc} GMT`;
+      return null;
+    },
+    build: (_c, trigger) => ({
+      title: "Sovereign supply / liquidity risk",
+      severity: "medium",
+      body: `Auction concession risk is on the desk's radar (${trigger}). The cleanest reads are bid-to-cover, indirect-bidder share, and the tail vs WI; the curve typically delivers the reaction within minutes of the cutoff.`,
+      cross_asset:
+        "Long-end yields widen on poor bid-to-cover; duration-sensitive curves bear-steepen; carry trades unwind on a sharp move; sovereign-spread products underperform.",
+      escalates_if:
+        "tail at auction, declining indirect bids, weak coverage on a heavy week, or a primary-dealer balance-sheet stress signal.",
+    }),
+  },
+
+  // ---- Inflation persistence -----------------------------------------
+  {
+    id: "inflation",
+    match: (c) => {
+      const e = c.events.find((e) => KEY_EVENT_PATTERNS.inflation.test(e.event));
+      if (e) return `${e.region} · ${e.event} ${e.time_utc} GMT`;
+      return null;
+    },
+    build: (_c, trigger) => ({
+      title: "Inflation persistence risk",
+      severity: "high",
+      body: `Inflation print in scope (${trigger}). Core / services / wage-sensitive components are the desk's focus; a beat against a dovish-leaning consensus tends to deliver an outsized cross-asset move.`,
+      cross_asset:
+        "Front-end yields higher on a beat; USD bid; growth-sensitive equity pressure; breakevens up; EM-FX carry unwound; rate-sensitive sectors lag.",
+      escalates_if:
+        "core / services beat consensus, a hot wage / jobs print pushing the curve hawkish, or sticky shelter / health-care components reigniting the inflation persistence narrative.",
+    }),
+  },
+
+  // ---- Growth slowdown -----------------------------------------------
+  {
+    id: "growth",
+    match: (c) => {
+      const e = c.events.find((e) => KEY_EVENT_PATTERNS.growth.test(e.event));
+      if (e) return `${e.region} · ${e.event} ${e.time_utc} GMT`;
+      return null;
+    },
+    build: (_c, trigger) => ({
+      title: "Growth slowdown risk",
+      severity: "medium",
+      body: `Growth print in scope (${trigger}). The desk reads the labour-market and survey complex (ISM / PMI / consumer) for cycle inflection; a downside surprise tends to bull-steepen the curve and pressure cyclicals.`,
+      cross_asset:
+        "Curve bull-steepens; USD softer on dovish repricing; defensives outperform cyclicals; commodity-bloc FX pressured; carry trades wobble.",
+      escalates_if:
+        "weak NFP / unemployment uptick, ISM sub-50, downside-surprise GDP, or a sharp drop in forward-looking surveys.",
+    }),
+  },
+
+  // ---- Positioning squeeze -------------------------------------------
+  {
+    id: "positioning",
+    match: () => "structural carry / vol regime", // always available as a tail risk
+    build: () => ({
+      title: "Positioning / carry squeeze risk",
+      severity: "low",
+      body: `A carry-trade unwind or sudden vol regime shift is the structural tail the desk monitors continuously. Crowded positioning in USD-EM carry, AUD/JPY, and short-vol structures is most exposed.`,
+      cross_asset:
+        "Carry trades (USD/MXN, USD/ZAR, AUD/JPY) most exposed; equity-vol regime shift drains the risk budget; JPY funder bid; gold catches a flight-to-quality bid.",
+      escalates_if:
+        "sustained VIX spike, a sudden yen rally on a BoJ surprise, a liquidity event in funding markets, or a sharp drawdown in a crowded sector that forces broad de-risking.",
+    }),
+  },
+];
+
+function buildRisks(briefing: BriefingRead, intel: Intelligence | null): Risk[] {
+  const ctx: RiskCtx = {
+    briefing,
+    geo: intel?.geopol_events ?? [],
+    cb: intel?.cb_events ?? [],
+    events: briefing.key_events ?? [],
+    headlines: intel?.headlines ?? [],
+  };
+
+  const out: Risk[] = [];
+  const seen = new Set<string>();
+
+  for (const pat of RISK_PATTERNS) {
+    if (out.length >= 6) break;
+    if (seen.has(pat.id)) continue;
+    const trigger = pat.match(ctx);
+    if (!trigger) continue;
+    seen.add(pat.id);
+    out.push({
+      rank: out.length + 1,
+      ...pat.build(ctx, trigger),
+    });
+  }
+
+  // If the pattern table produced fewer than 4 risks, fall back to the
+  // narrative layer's risk_warnings to fill out the register. These are
+  // LLM-generated so we annotate them with a generic cross-asset frame.
+  if (out.length < 4 && intel) {
+    for (const w of intel.risk_warnings) {
+      if (out.length >= 6) break;
       const sev = (w.severity.toLowerCase() === "high"
         ? "high"
         : w.severity.toLowerCase() === "medium"
           ? "medium"
           : "low") as Risk["severity"];
-      risks.push({
-        rank: risks.length + 1,
+      out.push({
+        rank: out.length + 1,
         title: w.title,
         severity: sev,
         body: w.body,
-      });
-    });
-  }
-
-  // Fold in high-impact events the intel didn't explicitly cover
-  const highEvents = (briefing.key_events ?? []).filter(
-    (e) => e.importance.toLowerCase() === "high",
-  );
-  const titles = new Set(risks.map((r) => r.title.toLowerCase()));
-  for (const e of highEvents) {
-    const t = `${e.region} · ${e.event}`;
-    if (!Array.from(titles).some((tx) => tx.includes(e.event.toLowerCase()))) {
-      risks.push({
-        rank: risks.length + 1,
-        title: t,
-        severity: "high",
-        body: `Scheduled ${e.time_utc} GMT. Consensus ${e.forecast ?? "—"} vs prior ${e.previous ?? "—"}. Positioning is thin into the print — surprise either side risks a disorderly move.`,
+        cross_asset:
+          "Cross-asset implications attached by the strategist layer — see the body.",
+        escalates_if: "—",
       });
     }
   }
 
-  // Top themes as medium/low watch items
-  const themes = (briefing.risk_themes ?? []).slice(0, 2);
-  themes.forEach((t, i) => {
-    risks.push({
-      rank: risks.length + 1,
-      title: t,
-      severity: i === 0 ? "medium" : "low",
-      body: `Tracked desk theme; the strategist watches for escalation in ${t.toLowerCase()} that would force a regime re-pricing in the dollar bloc, front-end rates, or oil supply premium.`,
-    });
-  });
-
-  return risks.slice(0, 6);
+  return out.slice(0, 6);
 }
 
 function KeyRisksBlock({ briefing, intel }: { briefing: BriefingRead; intel: Intelligence | null }) {
@@ -2205,6 +2567,18 @@ function KeyRisksBlock({ briefing, intel }: { briefing: BriefingRead; intel: Int
                 </span>
               </div>
               <p className="key-risks-body">{r.body}</p>
+              {r.cross_asset && r.cross_asset !== "—" ? (
+                <div className="key-risks-tag">
+                  <span className="key-risks-tag-label">Cross-asset</span>
+                  <span className="key-risks-tag-body">{r.cross_asset}</span>
+                </div>
+              ) : null}
+              {r.escalates_if && r.escalates_if !== "—" ? (
+                <div className="key-risks-tag">
+                  <span className="key-risks-tag-label">Escalates if</span>
+                  <span className="key-risks-tag-body">{r.escalates_if}</span>
+                </div>
+              ) : null}
             </div>
           </div>
         ))}
