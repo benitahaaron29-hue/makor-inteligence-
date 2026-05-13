@@ -14,16 +14,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createElement } from "react";
 
 import { BriefingReader } from "@/components/briefing/briefing-reader";
-import { generateBriefing } from "@/lib/briefing/generator";
+import { generateBriefingShell } from "@/lib/briefing/generator";
 import { isDemoMode } from "@/lib/api/demo";
 import { briefingsApi } from "@/lib/api/briefings";
 import { buildExportDocument } from "@/lib/export/document-shell";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-// Cold-cache exports need the LLM call to complete inline (no client
-// hydration in a static document), so give the function the full 60s
-// budget the page routes use.
+// Stab-3 — the export route now uses the shell path, which probes the
+// in-memory narrative cache instead of firing a fresh LLM call. Warm
+// cache → narrative inlined; cold cache → template content. Either way
+// the route returns in single-digit seconds and never approaches the
+// 60s Vercel Hobby budget, eliminating the FUNCTION_INVOCATION_TIMEOUT
+// pattern that was breaking exports.
 export const maxDuration = 60;
 
 export async function GET(
@@ -35,15 +38,17 @@ export async function GET(
     return new NextResponse("Invalid date format. Expected YYYY-MM-DD.", { status: 400 });
   }
 
-  // Exports are static documents — the client narrative hydrator can't
-  // run after the file is downloaded, so we bake the LLM-merged briefing
-  // in directly via the full sync path. In demo mode we fall back to the
-  // mock briefing exactly as the page route does.
+  // Lightweight export path. The export is a static document so the
+  // client hydrator cannot run later. The shell generator probes the
+  // narrative cache (synchronous in-memory lookup, no LLM call) so warm-
+  // cache exports get full narrative content inline, while cold-cache
+  // exports gracefully degrade to template content. Either way: no
+  // upstream LLM dependency in the export critical path.
   let briefing;
   try {
     briefing = isDemoMode()
       ? await briefingsApi.byDate(date)
-      : await generateBriefing(date);
+      : await generateBriefingShell(date);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return new NextResponse(`Briefing fetch failed: ${msg}`, { status: 502 });

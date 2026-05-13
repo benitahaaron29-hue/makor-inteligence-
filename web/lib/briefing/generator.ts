@@ -48,7 +48,7 @@ import { CB_SPECS, ALL_BANKS } from "@/lib/central-banks/feeds";
 import type { CBEvent } from "@/lib/central-banks/types";
 import { getBriefingGeoEvents, geoDiagnostics } from "@/lib/geopol/service";
 import type { GeoEvent } from "@/lib/geopol/types";
-import { synthesise, narrativeDiagnostics } from "@/lib/narrative/service";
+import { synthesise, peekCachedNarrative, narrativeDiagnostics } from "@/lib/narrative/service";
 import { isLLMFieldUsable } from "@/lib/narrative/usable";
 import type { NarrativeOutput } from "@/lib/narrative/types";
 
@@ -791,10 +791,21 @@ export async function generateBriefing(dateIso: string): Promise<BriefingRead> {
 }
 
 /**
- * Shell-only path — aggregates data, assembles the BriefingRead with a
- * null narrative, returns. No LLM call, so it lands well inside the
- * Vercel Hobby function budget. The client narrative hydrator picks
- * up the rest of the work after first paint.
+ * Shell path — aggregates data, probes the narrative cache (no LLM
+ * call), assembles the BriefingRead. Two outcomes:
+ *
+ *   warm cache → narrative ships baked in (render_stage="full"); the
+ *                client hydrator detects this and skips its /api/narrative
+ *                call. Page renders fully-hydrated with no LLM latency.
+ *
+ *   cold cache → narrative is null; render_stage="shell"; the page ships
+ *                with template content and the client hydrator fires the
+ *                /api/narrative call to upgrade after first paint. This
+ *                is the historical Stab-1 contract.
+ *
+ * Either way the shell function itself does NOT call the LLM, so it lands
+ * well inside Vercel Hobby's 60s function budget — critical for the
+ * export route which has no client hydration available.
  */
 export async function generateBriefingShell(dateIso: string): Promise<BriefingRead> {
   if (isDemoMode()) {
@@ -811,12 +822,26 @@ export async function generateBriefingShell(dateIso: string): Promise<BriefingRe
   genLog("starting", { date: dateIso, call_number: callNumber, mode: "shell" });
 
   const data = await aggregateData();
-  const briefing = await assembleBriefing(dateIso, data, null);
+  // Cheap narrative-cache probe. Never calls the LLM. If a recent
+  // narrative for today's exact context is already in the in-memory
+  // cache, the shell ships with it inline so the page (and any PDF
+  // export pulled from this same instance) is fully hydrated on first
+  // paint with no LLM latency.
+  const cached = peekCachedNarrative({
+    date_iso: dateIso,
+    quotes: data.quotes,
+    calendar: data.calendarEvents,
+    headlines: data.headlines,
+    cb_events: data.cbEvents,
+    geo_events: data.geoEvents,
+  });
+  const briefing = await assembleBriefing(dateIso, data, cached);
   GENERATOR_LAST_DURATION_MS = Date.now() - t0;
   genLog("done", {
     call_number: callNumber,
     took_ms: GENERATOR_LAST_DURATION_MS,
     mode: "shell",
+    narrative_cache: cached ? "hit" : "miss",
   });
   return briefing;
 }

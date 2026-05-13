@@ -2242,6 +2242,58 @@
       display: block !important;
     }
 
+    /* =========================================================================
+       PRINT-SAFE TOKEN OVERRIDES (Stab-3)
+       ---------------------------------------------------------------------------
+       Tokens.css defines text / surface / border colours for the live dark-theme
+       UI. Many of those values become unreadable on white paper (near-white text
+       on white background). The platform's components use these tokens via both
+       CSS classes AND inline styles like `style={{ color: 'var(--text-primary)' }}`.
+       Inline styles can't be overridden by selector specificity, so the only
+       reliable fix is to REDEFINE the tokens themselves inside print scope.
+       Every var() resolution downstream then produces a paper-safe colour
+       automatically — both on @media print AND in the export document
+       (which promotes this entire block to always-on via
+       document-shell.ts:extractMediaPrintBlock).
+       ========================================================================= */
+    :root {
+      /* Surfaces — paper white + subtle insets for tables / wells */
+      --surface-base:     #ffffff;
+      --surface-panel:    #ffffff;
+      --surface-inset:    #F5F7FA;
+      --surface-sunken:   #EBF0F7;
+
+      /* Borders — hairline navies for institutional rule lines */
+      --border-subtle:    #DEE5F1;
+      --border-default:   #C7DAFF;
+      --border-strong:    #8FA0BC;
+      --border-focus:     #1F56D1;
+      --border-accent:    #1F56D1;
+
+      /* Text — dark navy hierarchy that holds WCAG-AA against white */
+      --text-primary:     #08111F;
+      --text-secondary:   #233452;
+      --text-tertiary:    #4B5B72;
+      --text-disabled:    #8FA0BC;
+      --text-data:        #233452;
+      --text-eyebrow:     #1F56D1;
+      --text-editorial:   #0D1828;
+      --text-accent:      #1F56D1;
+
+      /* Brand accents kept tonally but adjusted for paper contrast */
+      --makor-200:        #1F56D1;
+      --makor-300:        #1F56D1;
+      --accent-brass:     #8A7140;
+      --accent-brass-soft:#C7B07A;
+
+      /* Semantic colours — kept saturated enough to survive a B/W copier */
+      --bid:              #2E8540;
+      --offer:            #B5263A;
+      --warning:          #8A7140;
+      --neutral:          #4B5B72;
+      --info:             #1F56D1;
+    }
+
     /* Hide every piece of the live chrome. */
     .sidebar,
     .command-bar,

@@ -237,6 +237,34 @@ export async function synthesise(input: ContextInput): Promise<NarrativeOutput |
   return validated;
 }
 
+/**
+ * Probe the in-memory narrative cache WITHOUT firing an LLM call.
+ *
+ * Used by the shell-render path (page route + export route) so that
+ * when a warm cache exists for today's exact context, the briefing
+ * ships with full narrative content baked in — no client hydration
+ * delay, no LLM latency, no cost. On a cache miss, returns null and
+ * the caller falls back to template content exactly as before.
+ *
+ * Why this is safe to call from any render path:
+ *   - `cacheGet` is a synchronous in-memory Map lookup (~50µs).
+ *   - No upstream HTTP, no LLM, no provider call.
+ *   - Same demo-mode guard the synthesise() flow honours.
+ *   - The diagnostic surface still reflects whatever the most recent
+ *     synthesise() call recorded; this probe does not mutate DIAG.
+ *
+ * Stab-3 (export reliability): export route invokes this via
+ * generateBriefingShell so PDF / print exports finish reliably inside
+ * Vercel Hobby's 60s budget. Cache hit → full narrative in the export;
+ * cache miss → template content. No timeout risk either way.
+ */
+export function peekCachedNarrative(input: ContextInput): NarrativeOutput | null {
+  if (isDemoMode()) return null;
+  const ctx = buildContext(input);
+  const cached = cacheGet<NarrativeOutput>(`${CACHE_KEY_PREFIX}${ctx.hash}`);
+  return cached ?? null;
+}
+
 export function narrativeDiagnostics(): NarrativeDiagnostics {
   return {
     last_call_at: DIAG.last_call_at,
