@@ -30,7 +30,12 @@ import type { GeoEvent } from "./types";
 // latency on the hydration call.
 const CACHE_TTL_SECONDS = 900;
 const CACHE_KEY = "geo::default-set";
-const WINDOW_DAYS = 14;
+// Editorial recency cap (Stab-4 editorial phase): an institutional
+// overnight brief reads the last few days, not a fortnight. Items older
+// than this don't belong in the morning desk note even if the upstream
+// feed still carries them. 5d covers Friday-night-to-Monday-morning
+// without dragging stale archival items into the report.
+const WINDOW_DAYS = 5;
 const MAX_EVENTS = 80;
 
 interface PerFeedStatus {

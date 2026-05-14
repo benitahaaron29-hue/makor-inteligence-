@@ -25,7 +25,11 @@ import type { CBEvent, CBName, CBSpec } from "./types";
 // shell well inside Vercel Hobby's serverless function budget.
 const CACHE_TTL_SECONDS = 900; // 15 min
 const CACHE_KEY = "cb::default-set";
-const WINDOW_DAYS = 14;
+// Editorial recency cap (Stab-4 editorial phase): the morning desk
+// note reads only fresh CB rhetoric — statements, speeches, press
+// conferences from the last two-to-three sessions. Older items belong
+// in the bank-by-bank archival view, not on the front of the briefing.
+const WINDOW_DAYS = 3;
 const MAX_EVENTS = 60;
 
 interface PerFeedStatus {

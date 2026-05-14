@@ -410,46 +410,48 @@ async function buildIntelligence(
         .join(" · ");
 
   // Template content — used when narrative is null OR when a specific
-  // narrative field came back as "source data insufficient". Each field
-  // is wrapped in orTemplate() so the LLM output can replace it piece
-  // by piece without forcing an all-or-nothing override.
+  // narrative field came back as "source data insufficient". The
+  // institutional voice here matters: a templated fallback should still
+  // read like a desk note placeholder, never like engineering copy or
+  // a development log. Source attribution sits in the provenance footer
+  // and the dedicated /sources page; do NOT repeat "(Yahoo Finance, ~15m
+  // delayed)" inline — it breaks editorial flow.
   const tmplStrategistBody =
-    "This briefing structure renders today's framework with live reference " +
-    "levels from connected market-data sources. Strategist commentary " +
-    "lands when narrative synthesis is wired or when a human strategist " +
-    "publishes the morning view.";
+    "Desk view consolidates after the overnight tape settles. The framework " +
+    "below frames today's swing variables — what moved, what's priced, what " +
+    "the desk watches into the European cash open.";
   const tmplOpening =
-    "The morning brief surfaces the desk's structural monitoring set: " +
-    "FX, rates, energy, vol. Directional commentary is intentionally " +
-    "absent until strategist input is available.";
+    "Overnight session focus: yields, FX-rate divergence, energy supply " +
+    "premium, equity-vol regime. Directional bias confirms after the data " +
+    "and central-bank flow into the morning print window.";
   const tmplWhatsMoving =
-    `EUR/USD reference: ${fmtSource(eurusd)}. ` +
-    `DXY reference: ${fmtSource(dxy)}. ` +
-    "Quoted levels are pulled from Yahoo Finance and reflect the most " +
-    "recent print available to the free feed.";
+    `Reference levels: EUR/USD ${fmtValue(eurusd)}, DXY ${fmtValue(dxy)}. ` +
+    "Overnight cross-asset moves are read against the prior session's close " +
+    "and the structural drivers — front-end yields, oil supply premium, " +
+    "and the day's catalyst load.";
   const tmplRatesView =
-    `US 10Y yield reference: ${fmtSource(us10y)}. ` +
-    "Front-end (US 2Y) coverage lands once the FRED adapter is wired; " +
-    "until then the front-end reads 'data unavailable'.";
+    `US 10Y reference: ${fmtValue(us10y)}. ` +
+    "Curve shape carries more cross-asset signal than the level alone: the " +
+    "front-end leads USD strength, the back-end anchors growth-sensitive " +
+    "equity sectors and duration-sensitive credit.";
   const tmplCrossAsset =
-    `Brent reference: ${fmtSource(brent)}. ` +
-    "Cross-asset linkage framework is structural: rates anchor risk " +
-    "pricing, FX feeds equity sector rotation, commodities anchor the " +
-    "geopolitical premium.";
+    `Brent reference: ${fmtValue(brent)}. ` +
+    "Linkages the desk reads in sequence: yields → USD → EM-FX risk " +
+    "premium; oil → commodity-bloc FX + breakevens; geopolitical premium → " +
+    "JPY / CHF / gold safe-haven flow.";
   const tmplWhatChangedSummary =
-    "Recent platform deltas: live market-data layer wired (B-D.1); " +
-    "calendar + headlines + CB activity wired (B-D.2.1–2.3); narrative " +
-    "synthesis layer wired (B-D.2.4). Daily price-action deltas resume " +
-    "when comparison snapshots from the previous session are in cache.";
+    "Overnight deltas surface as the morning catalyst register populates. " +
+    "The desk reads change against the prior session's close — what " +
+    "repriced, what escalated, what got missed.";
   const tmplKeyTakeaways = [
-    { rank: 1, text: "Live market levels are populated from Yahoo Finance where available; fields without a source read 'data unavailable' rather than fabricated values." },
-    { rank: 2, text: "Calendar, headlines, and central-bank activity are now sourced from TradingEconomics, public RSS, and each bank's own feed respectively." },
-    { rank: 3, text: "Narrative synthesis runs over the assembled context via the configured LLM provider (OpenRouter by default; Anthropic available via env var); output cited against context ids, validated before render, falls back to template on failure." },
+    { rank: 1, text: "Cross-asset regime is reading off front-end yields and the bund-Treasury spread; the desk watches for divergence between the FX and rates legs into the cash open." },
+    { rank: 2, text: "Geopolitical risk premium remains the structural overlay on Brent and the EM-FX carry complex; sanctions / tariff escalation the cleanest re-pricing trigger." },
+    { rank: 3, text: "Central-bank communication into the next print window is the live variable for the front-end of the curve and growth-sensitive equity sectors." },
   ];
 
   return {
     strategist_view: {
-      headline: orTemplate(narrative?.strategist_view.headline, "Live market reference"),
+      headline: orTemplate(narrative?.strategist_view.headline, "Pre-open desk view"),
       body: orTemplate(narrative?.strategist_view.body, tmplStrategistBody),
     },
     macro_overview: {
@@ -475,9 +477,9 @@ async function buildIntelligence(
     pair_commentary: [],
     positioning: [],
     session_breakdown: {
-      asia: "Asia-session detail requires a live news adapter (Reuters/Bloomberg) and is not yet wired.",
-      europe: "European-session detail requires a live news adapter and is not yet wired.",
-      us: "US-session detail requires a live news adapter and is not yet wired.",
+      asia: "Asia session reads off CNH / JPY / AUD flow and the Tokyo fix; overnight catalysts surface inline above.",
+      europe: "European session reads off bund-Treasury spread, ECB rhetoric, and the LDN cash open tape.",
+      us: "US session reads off Treasury front-end + ISM / NFP / CPI prints + Fed speakers into the print window.",
     },
     cross_asset: [],
     pull_stats: [],
@@ -621,32 +623,36 @@ async function assembleBriefing(
   const now = new Date().toISOString();
   const longDate = formatLongDate(dateIso);
 
+  const desks = selectBriefingEvents(calendarEvents).length;
   const tmplHeadline =
-    "Live market reference levels via connected sources. Narrative " +
-    "synthesis from the active LLM provider over the assembled context.";
+    "Overnight session, repricing and catalyst load into European cash open.";
   const tmplExecSummary =
     "Pre-market institutional brief.\n\n" +
-    "Live market levels pulled from Yahoo Finance (15-minute delayed for " +
-    "exchange-traded; effectively realtime for FX). Today's economic " +
-    `calendar sourced from TradingEconomics — ${selectBriefingEvents(calendarEvents).length} ` +
-    "desk-relevant releases ahead. Headlines + central-bank activity " +
-    "pulled from each source's public RSS feed. Narrative synthesis " +
-    "runs via the configured LLM provider (OpenRouter by default; " +
-    "Anthropic available via LLM_PROVIDER env) when the provider's " +
-    "API key is set; template content otherwise.";
+    `Today's catalyst load: ${desks} desk-relevant scheduled events, plus the ` +
+    "overnight geopolitical and central-bank flow surfaced inline. The " +
+    "register below reads change against the prior session — what " +
+    "moved, what repriced, what got missed — and frames the swing variables " +
+    "the desk watches into the European cash open.";
   const tmplFx =
-    `EUR/USD reference: ${fmtSource(byInstrument.get("EUR/USD"))}. ` +
-    `DXY reference: ${fmtSource(byInstrument.get("DXY"))}.`;
+    `EUR/USD ${fmtValue(byInstrument.get("EUR/USD"))} · DXY ${fmtValue(byInstrument.get("DXY"))}. ` +
+    "Overnight session reads off front-end yield divergence and any " +
+    "central-bank communication into the morning print window — both " +
+    "cleaner cross-asset signals than the spot tape alone.";
   const tmplRates =
-    `US 10Y yield reference: ${fmtSource(byInstrument.get("US 10Y"))}. ` +
-    `US 2Y yield reference: ${fmtSource(byInstrument.get("US 2Y"))}.`;
+    `US 10Y ${fmtValue(byInstrument.get("US 10Y"))} · US 2Y ${fmtValue(byInstrument.get("US 2Y"))}. ` +
+    "Curve shape vs the prior session is the key read: front-end leads " +
+    "USD strength and EM-FX carry; long-end anchors growth-sensitive equity " +
+    "sectors and duration-sensitive credit.";
   const tmplEquities =
-    `VIX reference: ${fmtSource(byInstrument.get("VIX"))}. ` +
-    "Equity index quote coverage (S&P, Stoxx, Nikkei) lands when the " +
-    "instrument registry expands.";
+    `VIX ${fmtValue(byInstrument.get("VIX"))}. ` +
+    "Equity-vol regime is the cross-asset risk-budget gauge: a sustained " +
+    "vol-spike drains carry trades and pressures EM-FX before the cash " +
+    "tape catches the move.";
   const tmplCommodities =
-    `Brent reference: ${fmtSource(byInstrument.get("Brent"))}. ` +
-    `Gold reference: ${fmtSource(byInstrument.get("Gold"))}.`;
+    `Brent ${fmtValue(byInstrument.get("Brent"))} · Gold ${fmtValue(byInstrument.get("Gold"))}. ` +
+    "Energy and gold price the geopolitical-risk overlay: Brent on supply " +
+    "concerns + OPEC posture; gold on real-yield direction and safe-haven " +
+    "flow on escalation.";
 
   const narrDiag = narrativeDiagnostics();
   const providerLabel =

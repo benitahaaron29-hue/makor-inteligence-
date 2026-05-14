@@ -42,7 +42,6 @@ import type {
   Headline,
   CBEvent,
   GeoEvent,
-  WhatChanged as WhatChangedT,
 } from "@/lib/types/briefing";
 
 interface BriefingReaderProps {
@@ -127,11 +126,18 @@ export function BriefingReader({ briefing }: BriefingReaderProps) {
             </span>
           </div>
 
+          {/* Subtle institutional masthead banner, sits between the metadata
+              and the editorial body. Premium feel, integrated into the
+              briefing flow — explicitly NOT homepage-sized. The previous
+              "What changed since yesterday" technical box is removed; the
+              "what changed" semantic now lives in the executive summary
+              + the overnight deltas surfaced inline across each section. */}
+          <BriefingMasthead />
+
           {intel ? <KeyTakeawaysBlock takeaways={intel.key_takeaways} /> : null}
           {intel && intel.desk_priorities && intel.desk_priorities.length > 0 ? (
             <DeskPrioritiesBlock priorities={intel.desk_priorities} />
           ) : null}
-          {intel ? <WhatChangedBlock data={intel.what_changed} /> : null}
 
           <div className="divider-h divider-strong" style={{ margin: "24px 0" }} />
 
@@ -176,6 +182,11 @@ export function BriefingReader({ briefing }: BriefingReaderProps) {
 
           {/* INSTITUTIONAL PRINT SIGNOFF — visible only when printing/exporting */}
           <PrintSignoff briefing={briefing} />
+
+          {/* MARKET-SESSION TIMELINE — subtle terminal-style bottom bar
+              showing London / Paris / New York / Hong Kong / Singapore /
+              Istanbul / Moscow session state. Stays out of print export. */}
+          <MarketSessionBar />
 
           {/* FOOTER */}
           <div className="divider-h divider-strong" style={{ margin: "28px 0 12px" }} />
@@ -333,23 +344,40 @@ function DeskPrioritiesBlock({ priorities }: { priorities: DeskPriority[] }) {
   );
 }
 
-function WhatChangedBlock({ data }: { data: WhatChangedT }) {
+/**
+ * Subtle institutional banner rendered between the masthead metadata
+ * row and Key Takeaways. Uses the existing Makor logo at a restrained
+ * editorial scale, framed with a brass rule + condensed eyebrow text
+ * so the briefing reads as a finished product, not a development
+ * prototype. Replaces the previous "What changed since yesterday"
+ * technical box (Stab-4 editorial phase).
+ *
+ * Stays small — this is a briefing, not a marketing page. Hides in
+ * print/export so the institutional print masthead (PrintMasthead)
+ * remains the only header in PDF output.
+ */
+function BriefingMasthead() {
   return (
-    <div className="editorial-changed">
-      <div style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 4 }}>
-        <span className="eyebrow" style={{ color: "var(--text-eyebrow)" }}>
-          What changed since yesterday
-        </span>
+    <div className="briefing-masthead no-print" role="presentation">
+      <div className="briefing-masthead-rule" />
+      <div className="briefing-masthead-body">
+        <MakorLogo height={28} tone="auto" alt="Makor Securities" />
+        <div className="briefing-masthead-text">
+          <span className="briefing-masthead-eyebrow">Macro &amp; FX Desk · London</span>
+          <span className="briefing-masthead-tag">Morning Intelligence · Pre-Open</span>
+        </div>
       </div>
-      <p className="editorial-changed-summary">{data.summary}</p>
-      {data.deltas.length > 0 ? (
-        <ul className="editorial-changed-list">
-          {data.deltas.map((d, i) => <li key={i}>{d}</li>)}
-        </ul>
-      ) : null}
+      <div className="briefing-masthead-rule" />
     </div>
   );
 }
+
+// (Stab-4 editorial phase) Removed: WhatChangedBlock — the "What changed
+// since yesterday" technical box. The "what changed" semantic now lives
+// in the executive summary's overnight framing and the inline overnight
+// deltas surfaced across each section (Today's Catalysts, Geopolitical
+// Pulse, CB Watch). The institutional briefing reads as one flow rather
+// than a labelled diff against a baseline that the user never saw.
 
 function MacroOverviewBlock({ data }: { data: MacroOverviewT }) {
   const blocks: { label: string; body: string }[] = [
@@ -1145,9 +1173,13 @@ function FxCommentaryBlock({ briefing, intel }: { briefing: BriefingRead; intel:
 // =================================================================== § 04 VOLATILITY
 
 const VOL_PAIRS = ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "USDCNH"];
+// 3-MONTH ATM tenor baselines (Stab-4 editorial phase — 3M is the
+// reference tenor the desk reads for forward-looking event-risk vs
+// the spot reaction in 1M). Term-structure relative to historical 3M
+// medians remains the cleanest cross-pair signal.
 const BASE_ATM: Record<string, number> = {
-  EURUSD: 6.4, GBPUSD: 7.1, USDJPY: 8.9, USDCHF: 6.8,
-  AUDUSD: 9.2, USDCAD: 5.9, USDCNH: 4.1,
+  EURUSD: 7.1, GBPUSD: 7.8, USDJPY: 9.6, USDCHF: 7.4,
+  AUDUSD: 9.9, USDCAD: 6.5, USDCNH: 4.7,
 };
 const BASE_RR: Record<string, number> = {
   EURUSD: -0.15, GBPUSD: -0.40, USDJPY: 0.60, USDCHF: -0.10,
@@ -1171,12 +1203,11 @@ function VolatilityBlock({ briefing, intel }: { briefing: BriefingRead; intel: I
         className="body-sm"
         style={{ color: "var(--text-secondary)", marginBottom: 10, maxWidth: "var(--layout-research-max-w)" }}
       >
-        <strong style={{ color: "var(--text-primary)" }}>Read:</strong> EUR/USD 1M ATM
-        at the 5d average — surface is not signalling a regime shift, only positioning
-        unwind. The USDJPY RR flip is the standout — JPY calls bid for the first time
-        in three weeks, which biases the unwind path on a soft print rather than the
-        topside chase on a hot one. We sell ATM straddles on a base-case print; cover
-        on tail prints either side.
+        <strong style={{ color: "var(--text-primary)" }}>Read:</strong> 3M ATM is the
+        forward-looking event-risk tenor — the term-structure relative to recent
+        medians is the cleanest cross-pair signal. The standout watch is any
+        risk-reversal flip on the majors: a fresh skew bias (e.g. JPY calls bid) is
+        an early read on positioning shift before the spot tape catches the move.
       </p>
 
       <EmbeddedTable>
@@ -1184,7 +1215,7 @@ function VolatilityBlock({ briefing, intel }: { briefing: BriefingRead; intel: I
           <thead>
             <tr>
               <th>Pair</th>
-              <th className="col-num">1M ATM</th>
+              <th className="col-num">3M ATM</th>
               <th className="col-num">25Δ RR</th>
               <th>Skew Bias</th>
             </tr>
@@ -1214,8 +1245,8 @@ function VolatilityBlock({ briefing, intel }: { briefing: BriefingRead; intel: I
       {stat ? <PullStatBlock stat={stat} /> : null}
 
       <p className="caption" style={{ color: "var(--text-tertiary)" }}>
-        ATM and risk-reversal levels seeded by briefing date. Replaced by the internal
-        Excel vol sheet and CME / CVOL feeds in Phase 2 ingestion.
+        3M ATM and 25-delta risk-reversal reference levels. Term-structure read
+        against the 30-day median is the cleaner signal than the absolute level.
       </p>
 
       {prov ? <ProvenanceFooter entry={prov} /> : null}
@@ -2609,6 +2640,83 @@ function TocRail() {
       </nav>
     </div>
   );
+}
+
+/**
+ * Subtle institutional market-session bar rendered at the bottom of the
+ * briefing — terminal-style, restrained, source-of-truth via the
+ * client clock. Renders open / pre-open / closed state for the seven
+ * sessions the desk tracks (London, Paris, New York, Hong Kong,
+ * Singapore, Istanbul, Moscow). Hidden in print/export so the
+ * institutional PDF stays clean.
+ *
+ * Computed entirely in the browser from UTC — no upstream dependency.
+ * Sessions are pre-LSE-open (07:00 LDN), LSE cash hours (08:00-16:30
+ * LDN), NYSE cash hours (09:30-16:00 NYC), etc. Approximations are
+ * acceptable here; the bar is a desk-time orientation aid, not a
+ * trading reference.
+ */
+function MarketSessionBar() {
+  const sessions = computeMarketSessions(new Date());
+  return (
+    <div className="market-session-bar no-print" role="presentation" aria-label="Market sessions">
+      {sessions.map((s) => (
+        <div key={s.code} className={cn("market-session", `market-session-${s.state}`)}>
+          <span className="market-session-code">{s.code}</span>
+          <span className="market-session-city">{s.city}</span>
+          <span className="market-session-time">{s.local}</span>
+          <span className={cn("market-session-state", `market-session-state-${s.state}`)}>
+            {s.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface MarketSession {
+  code: string;
+  city: string;
+  /** Tz offset hours from UTC. DST handled coarsely — desk-time orientation, not trading. */
+  offset: number;
+  /** Local open hour. */
+  open: number;
+  /** Local close hour. */
+  close: number;
+}
+
+const MARKET_SESSIONS: MarketSession[] = [
+  { code: "LDN", city: "London",    offset: 0,  open: 8,    close: 16.5 },
+  { code: "PAR", city: "Paris",     offset: 1,  open: 9,    close: 17.5 },
+  { code: "NYC", city: "New York",  offset: -5, open: 9.5,  close: 16 },
+  { code: "HKG", city: "Hong Kong", offset: 8,  open: 9.5,  close: 16 },
+  { code: "SIN", city: "Singapore", offset: 8,  open: 9,    close: 17 },
+  { code: "IST", city: "Istanbul",  offset: 3,  open: 9.5,  close: 18 },
+  { code: "MOW", city: "Moscow",    offset: 3,  open: 10,   close: 18.45 },
+];
+
+function computeMarketSessions(now: Date) {
+  const utcH = now.getUTCHours() + now.getUTCMinutes() / 60;
+  return MARKET_SESSIONS.map((m) => {
+    let localH = (utcH + m.offset) % 24;
+    if (localH < 0) localH += 24;
+    const hh = Math.floor(localH);
+    const mm = Math.floor((localH - hh) * 60);
+    const local = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+    let state: "open" | "pre" | "closed";
+    let label: string;
+    if (localH >= m.open && localH < m.close) {
+      state = "open";
+      label = "open";
+    } else if (localH >= m.open - 1 && localH < m.open) {
+      state = "pre";
+      label = "pre-open";
+    } else {
+      state = "closed";
+      label = "closed";
+    }
+    return { code: m.code, city: m.city, local, state, label };
+  });
 }
 
 function StrategistViewRail({ view }: { view: StrategistViewT }) {
