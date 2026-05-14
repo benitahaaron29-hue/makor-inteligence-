@@ -194,6 +194,13 @@ function buildSnapshot(byInstrument: Map<string, MarketQuote>): MarketSnapshot {
 
   put(fx, "EUR/USD", "EUR/USD");
   put(fx, "DXY", "DXY");
+  put(fx, "GBP/USD", "GBP/USD");
+  put(fx, "USD/JPY", "USD/JPY");
+  put(fx, "USD/CHF", "USD/CHF");
+  put(fx, "AUD/USD", "AUD/USD");
+  put(fx, "USD/CAD", "USD/CAD");
+  put(fx, "USD/MXN", "USD/MXN");
+  put(fx, "USD/CNH", "USD/CNH");
   put(rates, "US 2Y", "US 2Y");
   put(rates, "US 10Y", "US 10Y");
   put(equities, "VIX", "VIX");
@@ -580,7 +587,15 @@ interface AggregatedData {
   byInstrument: Map<string, MarketQuote>;
 }
 
-const QUOTE_SLUGS = ["eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix"];
+// Stab-4.3 — FX coverage expanded to the full majors set so the
+// institutional FX table reads with live values across the board, not
+// just EUR/USD + DXY. Each new slug uses the same Yahoo Finance
+// chart-endpoint adapter that's already in production for the seed
+// instruments — no new adapter, no new data path.
+const QUOTE_SLUGS = [
+  "eurusd", "dxy", "us2y", "us10y", "brent", "gold", "vix",
+  "gbpusd", "usdjpy", "usdchf", "audusd", "usdcad", "usdmxn", "usdcnh",
+];
 
 /**
  * Stage A.1 — fan-out to every data feed in parallel. Each feed is

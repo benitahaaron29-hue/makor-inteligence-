@@ -22,6 +22,7 @@ import { isDemoMode } from "@/lib/api/demo";
 import { fetchGeoFeed } from "./adapters/rss";
 import { meetsBriefingFilter } from "./classifier";
 import { GEO_SOURCES } from "./feeds";
+import { scoreGeoEvent } from "@/lib/briefing/impact";
 import type { GeoEvent } from "./types";
 
 // 15-min TTL — government RSS feeds update slowly (typically once per
@@ -122,6 +123,19 @@ export async function getGeoEvents(): Promise<GeoEvent[]> {
     deduped.push(e);
   }
 
+  // Stab-4.3 — institutional market-impact promotion. Items scored
+  // EXTREME or HIGH by the impact engine are FORCE-PROMOTED to
+  // relevance="high" so they unconditionally pass meetsBriefingFilter
+  // downstream. This is the line that ensures, e.g., a Trump / China
+  // tariff item or a Taiwan-strait escalation cannot be dropped by the
+  // pattern-only classifier missing the exact phrasing.
+  for (const e of deduped) {
+    const tier = scoreGeoEvent(e);
+    if (tier === "extreme" || tier === "high") {
+      e.relevance = "high";
+    }
+  }
+
   // 14-day window + chronological sort (newest first).
   const cutoff = Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000;
   const filtered = deduped.filter((e) => {
@@ -167,13 +181,22 @@ export function geoDiagnostics(): DiagState {
 /**
  * Top-N briefing-relevant events for the morning brief.
  *
- * Applies `meetsBriefingFilter` BEFORE slicing so a recent flood of
- * low-relevance press releases (typical from supranational feeds) can't
- * crowd out an older but high-relevance sanctions or fiscal announcement.
- * The full pool is still available via `getGeoEvents()` for diagnostics
- * and Phase 3.3's UI work.
+ * Applies `meetsBriefingFilter` then sorts by impact-tier desc + recency,
+ * so extreme / high-impact items (US-China, tariffs, Taiwan, sanctions,
+ * OPEC supply shocks) lead the register even when fresher low-tier items
+ * are in the pool. Stab-4.3 institutional prioritisation.
  */
 export async function getBriefingGeoEvents(limit = 12): Promise<GeoEvent[]> {
   const all = await getGeoEvents();
-  return all.filter(meetsBriefingFilter).slice(0, limit);
+  const kept = all.filter(meetsBriefingFilter);
+  const tierWeight = (e: GeoEvent): number => {
+    const t = scoreGeoEvent(e);
+    return t === "extreme" ? 4 : t === "high" ? 3 : t === "medium" ? 2 : 1;
+  };
+  kept.sort((a, b) => {
+    const dt = tierWeight(b) - tierWeight(a);
+    if (dt !== 0) return dt;
+    return b.datetime.localeCompare(a.datetime);
+  });
+  return kept.slice(0, limit);
 }

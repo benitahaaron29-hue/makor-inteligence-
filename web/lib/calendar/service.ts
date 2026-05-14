@@ -15,6 +15,7 @@
 
 import { cacheGet, cacheSet } from "@/lib/market/cache";
 import { isDemoMode } from "@/lib/api/demo";
+import { scoreCalendarEvent } from "@/lib/briefing/impact";
 import {
   teFetchCalendar,
   teKeyIsRegistered,
@@ -166,6 +167,21 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
   for (const r of raw) {
     const normalised = normalise(r);
     if (normalised) events.push(normalised);
+  }
+
+  // Stab-4.3 — institutional market-impact promotion. The upstream
+  // (TradingEconomics) routinely marks US CPI / NFP / Retail Sales /
+  // FOMC / ECB rate decisions at importance="high" or even "medium",
+  // which is below the desk filter's "critical|high" gate. We promote
+  // EXTREME-tier events to "critical" so they unconditionally survive
+  // meetsDeskFilter and never disappear from the morning brief.
+  for (const e of events) {
+    const tier = scoreCalendarEvent(e);
+    if (tier === "extreme" && e.importance !== "critical") {
+      e.importance = "critical";
+    } else if (tier === "high" && (e.importance === "medium" || e.importance === "low" || e.importance === "unknown")) {
+      e.importance = "high";
+    }
   }
 
   // Sort chronologically.

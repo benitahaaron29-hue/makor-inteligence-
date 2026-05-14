@@ -82,6 +82,51 @@ export const REGISTRY: Record<string, InstrumentSpec> = {
       { adapter: "yahoo", symbol: "^VIX", unit: "index", ttl_seconds: TTL_INTRADAY },
     ],
   },
+
+  // Additional FX majors (Stab-4.3) — populate the institutional
+  // majors table without leaving empty reference columns.
+  gbpusd: {
+    canonical: "GBP/USD",
+    chain: [
+      { adapter: "yahoo", symbol: "GBPUSD=X", unit: "price", ttl_seconds: TTL_INTRADAY },
+    ],
+  },
+  usdjpy: {
+    canonical: "USD/JPY",
+    chain: [
+      { adapter: "yahoo", symbol: "USDJPY=X", unit: "price", ttl_seconds: TTL_INTRADAY },
+    ],
+  },
+  usdchf: {
+    canonical: "USD/CHF",
+    chain: [
+      { adapter: "yahoo", symbol: "USDCHF=X", unit: "price", ttl_seconds: TTL_INTRADAY },
+    ],
+  },
+  audusd: {
+    canonical: "AUD/USD",
+    chain: [
+      { adapter: "yahoo", symbol: "AUDUSD=X", unit: "price", ttl_seconds: TTL_INTRADAY },
+    ],
+  },
+  usdcad: {
+    canonical: "USD/CAD",
+    chain: [
+      { adapter: "yahoo", symbol: "USDCAD=X", unit: "price", ttl_seconds: TTL_INTRADAY },
+    ],
+  },
+  usdmxn: {
+    canonical: "USD/MXN",
+    chain: [
+      { adapter: "yahoo", symbol: "USDMXN=X", unit: "price", ttl_seconds: TTL_INTRADAY },
+    ],
+  },
+  usdcnh: {
+    canonical: "USD/CNH",
+    chain: [
+      { adapter: "yahoo", symbol: "USDCNH=X", unit: "price", ttl_seconds: TTL_INTRADAY },
+    ],
+  },
 };
 
 /** The seed instrument set covered by B-D.1 → B-D.2. */

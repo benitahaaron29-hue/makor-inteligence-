@@ -20,6 +20,14 @@ import { CB_SPECS, ALL_BANKS } from "@/lib/central-banks/feeds";
 import { meetsDeskFilter as calMeetsDeskFilter } from "@/lib/calendar/classifier";
 import { meetsBriefingFilter as hlMeetsBriefingFilter } from "@/lib/headlines/classifier";
 import { meetsBriefingFilter as geoMeetsBriefingFilter } from "@/lib/geopol/classifier";
+import {
+  scoreCalendarEvent,
+  scoreCBEvent,
+  scoreGeoEvent,
+  scoreHeadline,
+  tierLabel,
+  tierRank,
+} from "@/lib/briefing/impact";
 
 export interface ContextDoc {
   /** Raw rendered string passed to the LLM as the user message. */
@@ -64,7 +72,8 @@ function fmtQuote(q: MarketQuote): string {
 function fmtCalendar(e: CalendarEvent): string {
   const forecast = e.forecast ? ` · forecast ${e.forecast}` : "";
   const previous = e.previous ? ` · prev ${e.previous}` : "";
-  return `${e.date} ${e.time} ${e.country} · ${e.event} [${e.importance}/${e.category}]${forecast}${previous}`;
+  const tier = tierLabel(scoreCalendarEvent(e));
+  return `[${tier}] ${e.date} ${e.time} ${e.country} · ${e.event} [${e.importance}/${e.category}]${forecast}${previous}`;
 }
 
 function fmtHeadline(h: Headline): string {
@@ -72,16 +81,19 @@ function fmtHeadline(h: Headline): string {
   // article body. The LLM produces its OWN summary if it wants to use
   // this line; it never quotes from the article.
   const time = h.published_at.slice(11, 16);
-  return `${h.published_at.slice(0, 10)} ${time} ${h.source} · [${h.category}/${h.relevance}] "${h.title}"`;
+  const tier = tierLabel(scoreHeadline(h));
+  return `[${tier}] ${h.published_at.slice(0, 10)} ${time} ${h.source} · [${h.category}/${h.relevance}] "${h.title}"`;
 }
 
 function fmtCBEvent(e: CBEvent): string {
   const speaker = e.speaker ? ` (${e.speaker})` : "";
-  return `${e.datetime.slice(0, 10)} ${e.datetime.slice(11, 16)} ${e.bank} · ${e.kind}${speaker} · "${e.title}"`;
+  const tier = tierLabel(scoreCBEvent(e));
+  return `[${tier}] ${e.datetime.slice(0, 10)} ${e.datetime.slice(11, 16)} ${e.bank} · ${e.kind}${speaker} · "${e.title}"`;
 }
 
 function fmtGeoEvent(e: GeoEvent): string {
-  return `${e.datetime.slice(0, 10)} ${e.datetime.slice(11, 16)} ${e.source} [${e.region}/${e.kind}/${e.relevance}] · "${e.title}"`;
+  const tier = tierLabel(scoreGeoEvent(e));
+  return `[${tier}] ${e.datetime.slice(0, 10)} ${e.datetime.slice(11, 16)} ${e.source} [${e.region}/${e.kind}/${e.relevance}] · "${e.title}"`;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,10 +131,40 @@ export function buildContext(input: ContextInput): ContextDoc {
   // items first; keeping 8 of each (32 total) is enough material for an
   // institutional brief while shaving 25-35% of input tokens off the
   // LLM call, which translates directly into lower cold-path latency.
-  const calendarKept = input.calendar.filter(calMeetsDeskFilter).slice(0, 8);
-  const headlinesKept = input.headlines.filter(hlMeetsBriefingFilter).slice(0, 8);
-  const cbKept = input.cb_events.slice(0, 8);
-  const geoKept = input.geo_events.filter(geoMeetsBriefingFilter).slice(0, 8);
+  // Stab-4.3 — institutional market-impact prioritisation. Within each
+  // kind we now sort by impact-tier descending (extreme > high > medium
+  // > low) so the highest-impact items reach the LLM first, regardless
+  // of feed recency. This is the line that ensures US CPI / Trump-China
+  // tariff escalation / OPEC supply shock items appear at the TOP of
+  // their respective sections in the LLM context rather than being
+  // crowded out by fresher low-tier items.
+  const byTierThenRecency = <T>(getTier: (x: T) => string, getTime: (x: T) => string) =>
+    (a: T, b: T): number => {
+      const dt = tierRank(getTier(b) as ImpactTier) - tierRank(getTier(a) as ImpactTier);
+      if (dt !== 0) return dt;
+      return getTime(b).localeCompare(getTime(a));
+    };
+
+  const calendarKept = input.calendar
+    .filter(calMeetsDeskFilter)
+    .slice()
+    .sort(byTierThenRecency<CalendarEvent>(scoreCalendarEvent, (e) => `${e.date} ${e.time}`))
+    .slice(0, 8);
+  const headlinesKept = input.headlines
+    .filter(hlMeetsBriefingFilter)
+    .slice()
+    .sort(byTierThenRecency<Headline>(scoreHeadline, (h) => h.published_at))
+    .slice(0, 8);
+  const cbKept = input.cb_events
+    .slice()
+    .sort(byTierThenRecency<CBEvent>(scoreCBEvent, (e) => e.datetime))
+    .slice(0, 8);
+  const geoKept = input.geo_events
+    .filter(geoMeetsBriefingFilter)
+    .slice()
+    .sort(byTierThenRecency<GeoEvent>(scoreGeoEvent, (e) => e.datetime))
+    .slice(0, 8);
+
 
   // 2. Number each kind from 1. The LLM cites against these ids.
   const lines: string[] = [];

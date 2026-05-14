@@ -7,11 +7,13 @@
  * the local time (live-updated every 30s) and open / pre-open /
  * closed state with a tiny live dot for open sessions.
  *
- * Rendered as a client component so the clocks actually advance after
- * first paint. The setInterval ticks every 30s — fine-grained enough
- * to look live, slow enough to be cheap. Hidden in print via the
- * existing .no-print rule + the dedicated print-hide on the parent
- * shell so the institutional PDF stays clean.
+ * Stab-4.3 — DST-correct via Intl.DateTimeFormat with IANA tz names
+ * (Europe/London, America/New_York etc.). Previous version used static
+ * UTC offsets which produced London / Paris one hour late during BST /
+ * CEST. The browser engine now handles DST transitions automatically.
+ *
+ * Hidden in print via the existing .no-print rule + the dedicated
+ * print-hide on the parent shell so the institutional PDF stays clean.
  */
 
 import { useEffect, useState } from "react";
@@ -20,22 +22,22 @@ import { cn } from "@/lib/utils";
 interface MarketSession {
   code: string;
   city: string;
-  /** Tz offset hours from UTC. DST handled coarsely — desk-time orientation only. */
-  offset: number;
-  /** Local open hour. */
+  /** IANA timezone — the browser handles DST + offsets correctly. */
+  tz: string;
+  /** Local open hour (24h, can be fractional e.g. 9.5 = 09:30). */
   open: number;
-  /** Local close hour. */
+  /** Local close hour (24h, fractional). */
   close: number;
 }
 
 const MARKET_SESSIONS: MarketSession[] = [
-  { code: "LDN", city: "London",    offset: 0,  open: 8,    close: 16.5 },
-  { code: "PAR", city: "Paris",     offset: 1,  open: 9,    close: 17.5 },
-  { code: "NYC", city: "New York",  offset: -5, open: 9.5,  close: 16 },
-  { code: "HKG", city: "Hong Kong", offset: 8,  open: 9.5,  close: 16 },
-  { code: "SIN", city: "Singapore", offset: 8,  open: 9,    close: 17 },
-  { code: "IST", city: "Istanbul",  offset: 3,  open: 9.5,  close: 18 },
-  { code: "MOW", city: "Moscow",    offset: 3,  open: 10,   close: 18.75 },
+  { code: "LDN", city: "London",    tz: "Europe/London",        open: 8,    close: 16.5 },
+  { code: "PAR", city: "Paris",     tz: "Europe/Paris",         open: 9,    close: 17.5 },
+  { code: "NYC", city: "New York",  tz: "America/New_York",     open: 9.5,  close: 16 },
+  { code: "HKG", city: "Hong Kong", tz: "Asia/Hong_Kong",       open: 9.5,  close: 16 },
+  { code: "SIN", city: "Singapore", tz: "Asia/Singapore",       open: 9,    close: 17 },
+  { code: "IST", city: "Istanbul",  tz: "Europe/Istanbul",      open: 9.5,  close: 18 },
+  { code: "MOW", city: "Moscow",    tz: "Europe/Moscow",        open: 10,   close: 18.75 },
 ];
 
 type SessionState = "open" | "pre" | "closed";
@@ -48,14 +50,34 @@ interface ComputedSession {
   label: string;
 }
 
+/**
+ * Read the local hour-and-minute in a given IANA timezone using the
+ * browser's Intl engine. Correct across DST transitions; no manual
+ * offset table to maintain.
+ */
+function localHoursMinutes(tz: string, now: Date): { h: number; m: number; display: string } {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(now);
+  const hStr = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const mStr = parts.find((p) => p.type === "minute")?.value ?? "00";
+  // Some locales render "24" for midnight in 24h mode — normalise.
+  const h = hStr === "24" ? 0 : parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  return {
+    h,
+    m,
+    display: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+  };
+}
+
 function computeMarketSessions(now: Date): ComputedSession[] {
-  const utcH = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
   return MARKET_SESSIONS.map((m) => {
-    let localH = (utcH + m.offset) % 24;
-    if (localH < 0) localH += 24;
-    const hh = Math.floor(localH);
-    const mm = Math.floor((localH - hh) * 60);
-    const local = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+    const { h, m: mm, display } = localHoursMinutes(m.tz, now);
+    const localH = h + mm / 60;
     let state: SessionState;
     let label: string;
     if (localH >= m.open && localH < m.close) {
@@ -68,7 +90,7 @@ function computeMarketSessions(now: Date): ComputedSession[] {
       state = "closed";
       label = "closed";
     }
-    return { code: m.code, city: m.city, local, state, label };
+    return { code: m.code, city: m.city, local: display, state, label };
   });
 }
 

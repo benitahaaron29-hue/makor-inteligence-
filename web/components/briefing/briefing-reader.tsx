@@ -7,6 +7,13 @@ import { LiveDot } from "@/components/ui/live-dot";
 import { Sparkline, sparkColor } from "@/components/ui/sparkline";
 import { MakorLogo } from "@/components/ui/makor-logo";
 import { MarketSessionBar } from "./market-session-bar";
+import {
+  scoreCalendarText,
+  scoreCBEvent,
+  scoreGeoEvent,
+  tierRank,
+  type ImpactTier,
+} from "@/lib/briefing/impact";
 
 import { formatLongDate, formatTimeOfDay } from "@/lib/utils/date";
 import { formatPrice, formatSymbol } from "@/lib/utils/format";
@@ -1418,15 +1425,14 @@ function FxCommentaryBlock({ briefing, intel }: { briefing: BriefingRead; intel:
 
 /**
  * Compact majors table — Bloomberg-terminal-style register of the
- * G10 FX pairs the desk reads most. Each row carries reference level,
- * directional bias chip, and a structural driver one-liner. Values
- * derive from the briefing's market snapshot (only EUR/USD + DXY have
- * direct quotes today; other pairs surface with "—" until the
- * instrument registry widens — never fabricated). The driver text is
- * desk-authored per pair, never per-day variable.
+ * G10 FX pairs the desk reads most. Each row pairs a real reference
+ * level from the briefing's market snapshot (Stab-4.3 expanded the
+ * market registry to cover all eight pairs) with a desk-authored
+ * structural-driver one-liner. Empty reference values surface as "—"
+ * — never fabricated.
  */
-const FX_MAJORS: Array<{ pair: string; quoteKey?: keyof typeof FX_MAJORS_QUOTE_KEYS; driver: string }> = [
-  { pair: "EUR/USD", quoteKey: "EUR/USD", driver: "Bund-Treasury spread + front-end yield divergence." },
+const FX_MAJORS: Array<{ pair: string; driver: string }> = [
+  { pair: "EUR/USD", driver: "Bund-Treasury spread + front-end yield divergence." },
   { pair: "GBP/USD", driver: "Gilt-Treasury spread + BoE vote-split signal." },
   { pair: "USD/JPY", driver: "JGB yields + BoJ YCC + USD front-end; safe-haven flow on escalation." },
   { pair: "USD/CHF", driver: "SNB FX-reserve posture + safe-haven flow on geopolitical risk." },
@@ -1435,10 +1441,6 @@ const FX_MAJORS: Array<{ pair: string; quoteKey?: keyof typeof FX_MAJORS_QUOTE_K
   { pair: "USD/MXN", driver: "Carry + USTR tariff signal + US-Mexico growth gap." },
   { pair: "USD/CNH", driver: "PBoC fix + tariff / chip-policy thread + capital-flow dynamics." },
 ];
-const FX_MAJORS_QUOTE_KEYS = {
-  "EUR/USD": true,
-  "DXY": true,
-} as const;
 
 function FxMajorsTable({ briefing }: { briefing: BriefingRead }) {
   const fx = briefing.market_snapshot?.fx ?? {};
@@ -1454,7 +1456,7 @@ function FxMajorsTable({ briefing }: { briefing: BriefingRead }) {
         </thead>
         <tbody>
           {FX_MAJORS.map((m) => {
-            const value = m.quoteKey ? fx[m.quoteKey] : undefined;
+            const value = fx[m.pair];
             const ref = typeof value === "number" ? formatFxRef(m.pair, value) : "—";
             return (
               <tr key={m.pair}>
@@ -1745,43 +1747,68 @@ function buildCatalysts(
   briefing: BriefingRead,
   intel: Intelligence | null,
 ): KeyEvent[] {
-  const all: KeyEvent[] = [...(briefing.key_events ?? [])];
+  // Stab-4.3 — institutional market-impact ranking. Each merged
+  // KeyEvent is tagged with the impact tier from impact.ts; the
+  // returned list is sorted by tier descending so the EXTREME
+  // (US CPI, NFP, Retail Sales, FOMC, Trump-China tariff escalation,
+  // OPEC supply shock) items lead the priority register, never
+  // crowded out by fresher low-tier RSS noise.
+  type Tagged = KeyEvent & { __tier: ImpactTier };
+  const all: Tagged[] = [];
+
+  for (const e of briefing.key_events ?? []) {
+    const tier = scoreCalendarText(e.region, e.event, e.importance);
+    // Promote sensitivity for extreme tier so PriorityEventsBlock
+    // renders them with P1 "watch closely" emphasis.
+    let promoted = e;
+    if (tier === "extreme" && e.sensitivity !== "desk_critical") {
+      promoted = { ...e, sensitivity: "desk_critical" };
+    } else if (tier === "high" && (!e.sensitivity || e.sensitivity === "low" || e.sensitivity === "medium")) {
+      promoted = { ...e, sensitivity: "high" };
+    }
+    all.push({ ...promoted, __tier: tier });
+  }
 
   const now = Date.now();
   const geoCutoff = now - 48 * 60 * 60 * 1000; // last 48h
-  const cbCutoff = now - 36 * 60 * 60 * 1000;  // last 36h (slightly tighter)
+  const cbCutoff = now - 36 * 60 * 60 * 1000;  // last 36h
 
-  // Geopolitical / government events → KeyEvent shape
   for (const g of intel?.geopol_events ?? []) {
     if (g.relevance === "low") continue;
     const t = Date.parse(g.datetime);
     if (!Number.isFinite(t) || t < geoCutoff) continue;
-    const isHigh = g.relevance === "high";
+    const tier = scoreGeoEvent(g);
+    const sens =
+      tier === "extreme" ? "desk_critical"
+      : tier === "high" ? "desk_critical"
+      : "high";
     all.push({
       time_utc: g.datetime.slice(11, 16),
       region: g.region,
       event: g.title.length > 120 ? g.title.slice(0, 117) + "…" : g.title,
-      importance: isHigh ? "high" : "medium",
+      importance: tier === "extreme" || tier === "high" ? "high" : "medium",
       forecast: null,
       previous: null,
       speaker: null,
       topic: g.kind,
       category: geoKindToCategory(g.kind),
-      // Promote high-relevance geopol items to desk_critical so they
-      // surface as P1 in PriorityEventsBlock and inherit the existing
-      // "Watch closely" treatment.
-      sensitivity: isHigh ? "desk_critical" : "high",
+      sensitivity: sens,
       pairs_affected: null,
       vol_impact: null,
       desk_focus: g.market_impact,
+      __tier: tier,
     });
   }
 
-  // Central-bank high-signal activity → KeyEvent shape
   for (const c of intel?.cb_events ?? []) {
     if (!CB_HIGH_SIGNAL_KINDS.has(c.kind)) continue;
     const t = Date.parse(c.datetime);
     if (!Number.isFinite(t) || t < cbCutoff) continue;
+    const tier = scoreCBEvent(c);
+    const sens =
+      tier === "extreme" ? "desk_critical"
+      : c.kind === "statement" || c.kind === "press-conf" ? "desk_critical"
+      : "high";
     all.push({
       time_utc: c.datetime.slice(11, 16),
       region: c.bank,
@@ -1792,15 +1819,26 @@ function buildCatalysts(
       speaker: c.speaker,
       topic: c.kind,
       category: "monetary",
-      sensitivity:
-        c.kind === "statement" || c.kind === "press-conf" ? "desk_critical" : "high",
+      sensitivity: sens,
       pairs_affected: null,
       vol_impact: null,
       desk_focus: c.market_impact,
+      __tier: tier,
     });
   }
 
-  return all;
+  // Sort by impact tier desc, then by time. The PriorityEventsBlock
+  // re-sorts by session group internally, but the slice taken from this
+  // list determines which items make it in — sorting here guarantees
+  // tier-extreme items are not dropped at the slice boundary.
+  all.sort((a, b) => tierRank(b.__tier) - tierRank(a.__tier));
+  // Strip the __tier tag before returning so the downstream KeyEvent
+  // renderer doesn't see the internal field.
+  return all.map((e) => {
+    const { __tier: _t, ...rest } = e;
+    void _t;
+    return rest;
+  });
 }
 
 function sessionTagFor(timeUtc: string): { label: string; cls: string } {
