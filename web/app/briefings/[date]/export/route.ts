@@ -63,7 +63,12 @@ export async function GET(
     // Dynamic import so Next.js's SWC plugin doesn't flag the static
     // react-dom/server import. Route handlers are always server-side.
     const { renderToStaticMarkup } = await import("react-dom/server");
-    readerMarkup = renderToStaticMarkup(createElement(BriefingReader, { briefing }));
+    // forExport=true skips the MarketSessionBar (which carries the
+    // "use client" directive and would resolve to a Next.js
+    // client-reference object that renderToStaticMarkup cannot
+    // serialise from a server context). PrintMasthead + signoff
+    // already handle the institutional PDF header / footer.
+    readerMarkup = renderToStaticMarkup(createElement(BriefingReader, { briefing, forExport: true }));
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Render failed";
     return new NextResponse(`Briefing render failed: ${msg}`, { status: 500 });

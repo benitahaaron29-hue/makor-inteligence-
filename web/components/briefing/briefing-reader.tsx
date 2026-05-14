@@ -54,6 +54,16 @@ import type {
 
 interface BriefingReaderProps {
   briefing: BriefingRead;
+  /**
+   * When true, the reader is being rendered for the HTML export /
+   * download path. Suppresses client-only affordances (the live
+   * MarketSessionBar) so the server-only renderToStaticMarkup pipeline
+   * never touches a "use client" boundary — that boundary returns a
+   * Next.js client-reference object on import from a server context
+   * which breaks legacy SSR rendering. Live page renders pass false
+   * (default) and keep the live footer.
+   */
+  forExport?: boolean;
 }
 
 // Section ordering — narrative-led, instruments subordinate.
@@ -83,7 +93,7 @@ const SECTIONS = [
 
 // =================================================================== READER
 
-export function BriefingReader({ briefing }: BriefingReaderProps) {
+export function BriefingReader({ briefing, forExport = false }: BriefingReaderProps) {
   const minutes = Math.max(2, Math.round(briefing.executive_summary.length / 250));
   const intel = briefing.intelligence;
 
@@ -226,8 +236,15 @@ export function BriefingReader({ briefing }: BriefingReaderProps) {
 
           {/* LIVE MARKET-SESSION STATUS STRIP — Bloomberg-terminal-style
               live footer. Tickers update every 30s client-side.
-              Hidden in print/export so the institutional PDF stays clean. */}
-          <MarketSessionBar />
+              Skipped entirely on the export / download render path:
+              MarketSessionBar carries the "use client" directive, and
+              the HTML-export route uses react-dom/server's
+              renderToStaticMarkup directly, which cannot resolve the
+              Next.js client-reference object that the directive yields
+              for a server-context import. The export's PrintMasthead +
+              footer already handle the institutional PDF look without
+              this strip; live web pages keep it. */}
+          {!forExport ? <MarketSessionBar /> : null}
         </div>
       </article>
 
