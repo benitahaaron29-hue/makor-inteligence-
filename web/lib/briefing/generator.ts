@@ -489,12 +489,16 @@ async function buildIntelligence(
     headlines,
     cb_events: cbEvents,
     geopol_events: geoEvents,
+    // Stab-4.2 editorial cleanup — the "regime" / "fx" / "trades" rows
+    // had been carrying inline "Yahoo Finance (Vercel-native adapter)"
+    // attributions that broke institutional immersion at the bottom of
+    // every section. Per-feed source attribution lives on the dedicated
+    // /sources page; the briefing footers now carry only the per-section
+    // entries where multi-feed aggregation actually warrants a footer
+    // (calendar / central-banks / geopolitical / government).
     provenance: [
-      { section: "regime", sources: ["Yahoo Finance (Vercel-native adapter)"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
-      { section: "fx", sources: ["Yahoo Finance"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "calendar", sources: [calendarSource], as_of: calDiag.last_fetched_at ? calDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
       { section: "central-banks", sources: [cbSources], as_of: cbDiag.last_fetched_at ? cbDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
-      { section: "trades", sources: ["Template content + Yahoo Finance reference levels"], as_of: new Date().toISOString().slice(11, 16) + " UTC" },
       { section: "geopolitical", sources: [hlSources], as_of: hlDiag.last_fetched_at ? hlDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
       { section: "government", sources: [geoSources], as_of: geoDiag.last_fetched_at ? geoDiag.last_fetched_at.slice(11, 16) + " UTC" : "—" },
     ],

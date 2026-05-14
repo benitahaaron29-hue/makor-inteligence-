@@ -3790,72 +3790,331 @@
 }
 
 /* =============================================================================
-   MARKET-SESSION BAR — terminal-style bottom strip showing the seven
-   sessions the desk tracks. Subtle, restrained. Hidden in print/export.
+   MARKET-SESSION STATUS STRIP — Bloomberg-terminal-style live footer
+   at the bottom of the briefing. Clocks tick every 30s via the
+   client-side MarketSessionBar component. Restrained, persistent,
+   global. Hidden in print/export.
    ========================================================================== */
 .market-session-bar {
-  margin: 18px 0 8px;
+  margin: 18px 0 4px;
   display: flex;
   flex-wrap: wrap;
   gap: 0;
-  background: var(--surface-inset);
-  border: 1px solid var(--border-subtle);
-  border-radius: 3px;
+  background: var(--surface-sunken);
+  border-top: 1px solid var(--accent-brass-soft);
+  border-bottom: 1px solid var(--border-subtle);
   overflow: hidden;
+  font-family: var(--font-mono);
 }
 .market-session {
   flex: 1 1 0;
-  min-width: 110px;
-  padding: 8px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  border-right: 1px solid var(--border-subtle);
+  min-width: 96px;
+  padding: 6px 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 0;
+  align-items: baseline;
+  border-right: 1px dotted var(--border-subtle);
   position: relative;
 }
 .market-session:last-child { border-right: 0; }
 .market-session-code {
-  font-family: var(--font-mono);
-  font-size: 10px;
+  grid-row: 1;
+  grid-column: 1;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--text-tertiary);
+  letter-spacing: 0.16em;
+  color: var(--accent-brass);
+  text-transform: uppercase;
 }
 .market-session-city {
+  grid-row: 1;
+  grid-column: 2;
   font-family: var(--font-sans);
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
 }
 .market-session-time {
-  font-family: var(--font-mono);
+  grid-row: 2;
+  grid-column: 1;
   font-variant-numeric: tabular-nums;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: -0.005em;
   color: var(--text-data);
   margin-top: 2px;
 }
 .market-session-state {
+  grid-row: 2;
+  grid-column: 2;
   font-family: var(--font-sans);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   margin-top: 2px;
+  justify-self: end;
+  padding-right: 8px;
 }
 .market-session-state-open    { color: var(--bid); }
 .market-session-state-pre     { color: var(--warning); }
 .market-session-state-closed  { color: var(--text-disabled); }
 .market-session-open::before {
-  /* Tiny live dot on the open sessions. */
+  /* Tiny pulse dot on the open sessions — global desk-time signal. */
   content: "";
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 7px;
+  right: 6px;
   width: 5px;
   height: 5px;
   border-radius: 999px;
   background: var(--bid);
-  box-shadow: 0 0 6px rgba(46, 133, 64, 0.45);
+  box-shadow: 0 0 4px rgba(46, 133, 64, 0.55);
+  animation: marketSessionPulse 2.4s ease-in-out infinite;
+}
+@keyframes marketSessionPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* =============================================================================
+   STAB-4.2 EDITORIAL REFINEMENT — CSS for the new blocks introduced in
+   the editorial-intelligence refinement pass.
+   ========================================================================== */
+
+/* ----- CB event per-row institutional read (between title + market_impact) - */
+.cb-event-read {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ----- Compact bank-by-bank summary ---------------------------------------- */
+.cb-compact {
+  margin-top: 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  background: var(--surface-panel);
+}
+.cb-compact-eyebrow {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-eyebrow);
+  margin-bottom: 6px;
+}
+.cb-compact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cb-compact-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--border-subtle);
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+.cb-compact-row:last-child { border-bottom: 0; }
+.cb-compact-bank {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--makor-200);
+}
+.cb-compact-bias {
+  color: var(--text-secondary);
+}
+.cb-compact-next {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.cb-compact-next-label {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-left: 6px;
+}
+
+/* ----- Macro Regime read paragraph (dynamic regime label) ------------------ */
+.regime-read {
+  margin: 10px 0 14px;
+  padding: 10px 14px;
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--accent-brass);
+  border-radius: 0 3px 3px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.regime-read-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-brass);
+}
+.regime-read-label {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+}
+.regime-read-body {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-editorial);
+  margin: 0;
+  max-width: var(--layout-research-max-w);
+}
+
+/* ----- Reading Guide rail (sidebar) ---------------------------------------- */
+.reading-guide-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reading-guide-list li {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  align-items: baseline;
+}
+.reading-guide-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--accent-brass);
+}
+.reading-guide-list a {
+  color: var(--text-accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--border-default);
+}
+
+/* ----- Top movers (overnight gainers / losers) ----------------------------- */
+.top-movers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 8px 0 14px;
+  max-width: var(--layout-research-max-w);
+}
+@media (max-width: 760px) {
+  .top-movers { grid-template-columns: 1fr; }
+}
+.top-movers-col {
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  background: var(--surface-panel);
+  padding: 8px 12px;
+}
+.top-movers-col-eyebrow {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.top-movers-col-eyebrow-gain { color: var(--bid); }
+.top-movers-col-eyebrow-loss { color: var(--offer); }
+.top-movers-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.top-movers-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 3px 0;
+  border-bottom: 1px dotted var(--border-subtle);
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+.top-movers-row:last-child { border-bottom: 0; }
+.top-movers-instrument {
+  color: var(--text-primary);
+}
+.top-movers-last {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-data);
+  font-size: 11px;
+}
+.top-movers-delta {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 64px;
+  text-align: right;
+}
+
+/* ----- Print rules for the new blocks (paper-safe colours) ----------------- */
+@media print {
+  .cb-event-read    { color: #233452 !important; font-size: 9pt !important; line-height: 12pt !important; }
+  .cb-compact       { background: #F5F7FA !important; border-color: #C7DAFF !important; }
+  .cb-compact-eyebrow { color: #1F56D1 !important; }
+  .cb-compact-bank  { color: #1F56D1 !important; }
+  .cb-compact-bias  { color: #233452 !important; }
+  .cb-compact-next  { color: #08111F !important; }
+  .cb-compact-next-label { color: #4B5B72 !important; }
+
+  .regime-read       { background: #F5F7FA !important; border-color: #C7DAFF !important; border-left-color: #8A7140 !important; }
+  .regime-read-eyebrow { color: #8A7140 !important; }
+  .regime-read-label { color: #08111F !important; }
+  .regime-read-body  { color: #0D1828 !important; }
+
+  .reading-guide-list { color: #233452 !important; }
+  .reading-guide-tag  { color: #8A7140 !important; }
+
+  .top-movers-col     { background: #F5F7FA !important; border-color: #C7DAFF !important; }
+  .top-movers-col-eyebrow-gain { color: #2E8540 !important; }
+  .top-movers-col-eyebrow-loss { color: #B5263A !important; }
+  .top-movers-instrument { color: #08111F !important; }
+  .top-movers-last       { color: #233452 !important; }
+
+  /* Market-session bar hidden in print; redundancy with .no-print is intentional. */
+  .market-session-bar { display: none !important; }
 }
 
 /* =============================================================================

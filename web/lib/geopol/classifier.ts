@@ -34,34 +34,49 @@ interface Pattern {
 // ----------------------------------------------------------------------
 const PATTERNS: Pattern[] = [
   // Sanctions ----------------------------------------------------------
-  { re: /\b(sanction(?:s|ed|ing)?|designat(?:e|es|ed|ion)|OFAC|asset freeze|export control)\b/i, kind: "sanctions", relevance: "high" },
+  { re: /\b(sanction(?:s|ed|ing)?|designat(?:e|es|ed|ion)|OFAC|asset freeze|export control|entity list)\b/i, kind: "sanctions", relevance: "high" },
 
   // Tariffs / trade actions -------------------------------------------
-  { re: /\b(tariff(?:s)?|section ?(?:201|232|301)|duty|duties|countervail)\b/i, kind: "tariff", relevance: "high" },
-  { re: /\b(trade (?:deal|agreement|pact|accord|talks|war|dispute)|free trade|FTA)\b/i, kind: "trade-deal", relevance: "high" },
+  { re: /\b(tariff(?:s)?|section ?(?:201|232|301)|duty|duties|countervail|chip (?:ban|restriction)|technology (?:ban|restriction)|semiconductor (?:ban|restriction)|export ban)\b/i, kind: "tariff", relevance: "high" },
+  { re: /\b(trade (?:deal|agreement|pact|accord|talks|war|dispute|tensions?)|free trade|FTA|USMCA|trade restriction)\b/i, kind: "trade-deal", relevance: "high" },
 
   // Escalation / military / war ---------------------------------------
-  { re: /\b(invasion|invade(?:s|d)?|missile|airstrike|air ?strike|drone strike|hostilities|escalation|escalat(?:e|ing)|attack(?:s|ed|ing)?|military operation|ceasefire|hostage)\b/i, kind: "escalation", relevance: "high" },
+  { re: /\b(invasion|invade(?:s|d)?|missile|airstrike|air ?strike|drone strike|hostilities|escalation|escalat(?:e|ing)|attack(?:s|ed|ing)?|military operation|ceasefire|hostage|strait of taiwan|taiwan strait|gaza|hezbollah|hamas|iran (?:nuclear|strike|attack)|ukraine (?:offensive|front|advance))\b/i, kind: "escalation", relevance: "high" },
 
   // Commodity supply --------------------------------------------------
-  { re: /\b(OPEC(?:\+|-)?(?: ?\+ ?)?|production (?:cut|quota|decision|target)|output (?:cut|quota)|oil (?:supply|embargo)|pipeline (?:closure|attack)|strait of hormuz)\b/i, kind: "commodity-supply", relevance: "high" },
+  { re: /\b(OPEC(?:\+|-)?(?: ?\+ ?)?|production (?:cut|quota|decision|target)|output (?:cut|quota)|oil (?:supply|embargo|disruption)|pipeline (?:closure|attack|disruption)|strait of hormuz|red sea (?:shipping|attack)|refinery (?:fire|outage))\b/i, kind: "commodity-supply", relevance: "high" },
 
   // Fiscal policy -----------------------------------------------------
-  { re: /\b(budget|fiscal (?:plan|package|measure|policy)|stimulus|spending plan|tax (?:cut|rise|hike|reform)|debt ceiling|gilt issuance|bond issuance)\b/i, kind: "fiscal-policy", relevance: "high" },
+  { re: /\b(budget (?:plan|proposal|announcement)|fiscal (?:plan|package|measure|policy|stimulus)|stimulus|spending plan|tax (?:cut|rise|hike|reform|policy)|debt ceiling|gilt issuance|bond issuance|treasury (?:issuance|refunding))\b/i, kind: "fiscal-policy", relevance: "high" },
 
   // Emergency ---------------------------------------------------------
-  { re: /\b(emergency (?:meeting|summit|session)|crisis (?:talks|meeting|response)|urgent (?:meeting|action))\b/i, kind: "emergency", relevance: "high" },
+  { re: /\b(emergency (?:meeting|summit|session)|crisis (?:talks|meeting|response)|urgent (?:meeting|action)|sovereign (?:default|stress))\b/i, kind: "emergency", relevance: "high" },
 
   // Summits / multilateral --------------------------------------------
-  { re: /\b(G[-\s]?7|G[-\s]?20|NATO|EU council|european council|UN security council|summit)\b/i, kind: "summit", relevance: "high" },
+  { re: /\b(G[-\s]?7|G[-\s]?20|NATO|EU council|european council|UN security council|summit|bilateral (?:meeting|talks))\b/i, kind: "summit", relevance: "high" },
 
   // Elections ---------------------------------------------------------
   { re: /\b(election results?|presidential election|general election|snap election|referendum|vote result)\b/i, kind: "election", relevance: "high" },
   { re: /\b(election|ballot|polls? open|polling station)\b/i, kind: "election", relevance: "medium" },
 
-  // Leader speeches / addresses ---------------------------------------
+  // Global leaders by name — these almost always carry market-moving
+  // weight, even when the title doesn't contain a specific kind keyword
+  // ("Trump warns China on tariffs", "Xi meets Putin", "Lagarde says..."
+  // etc). Bloomberg / Reuters / Investing.com lead with these and the
+  // desk reads them as catalyst surface.
+  { re: /\b(Trump|Xi(?: Jinping)?|Putin|Biden|Harris|Vance|Powell|Lagarde|Bailey|Ueda|Macron|Scholz|Sunak|Starmer|Modi|Netanyahu|Zelensky|Erdogan|Bessent|Yellen|Brainard)\b/i, kind: "leader-speech", relevance: "high" },
+
+  // Country-pair flashpoints — a title mentioning these pairings is a
+  // higher-than-default signal even before any "kind" pattern fires.
+  { re: /\b(US[-\s]?China|China[-\s]?US|Taiwan[-\s]?(?:China|US)|Russia[-\s]?Ukraine|Iran[-\s]?(?:Israel|US)|Israel[-\s]?Iran|North Korea|DPRK)\b/i, kind: "escalation", relevance: "high" },
+
+  // China-tech / export-control thread — a structural China-policy
+  // axis the desk tracks continuously.
+  { re: /\b(China.*(?:chip|semiconductor|technology|tech ban|export)|chip.*china|semiconductor.*china|tech.*china)\b/i, kind: "tariff", relevance: "high" },
+
+  // Leader speeches / addresses — formal venue patterns
   { re: /\b(state of the union|inaugural address|fireside chat|address to (?:the )?nation|prime minister(?:'s)? statement|president(?:'s)? (?:speech|address|remarks))\b/i, kind: "leader-speech", relevance: "high" },
-  { re: /\b(speech|remarks|address|statement) by (?:the )?(?:president|prime minister|chancellor|secretary|director-general|managing director)\b/i, kind: "leader-speech", relevance: "medium" },
+  { re: /\b(speech|remarks|address|statement) by (?:the )?(?:president|prime minister|chancellor|secretary|director-general|managing director|chair(?:man|woman)?)\b/i, kind: "leader-speech", relevance: "medium" },
 
   // Policy statements -------------------------------------------------
   { re: /\b(policy (?:statement|announcement)|joint statement|communique|communiqu[eé]|press conference)\b/i, kind: "policy-statement", relevance: "medium" },

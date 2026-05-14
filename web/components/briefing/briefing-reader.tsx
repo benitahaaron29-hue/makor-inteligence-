@@ -6,6 +6,7 @@ import { TickerChip } from "@/components/ui/ticker-chip";
 import { LiveDot } from "@/components/ui/live-dot";
 import { Sparkline, sparkColor } from "@/components/ui/sparkline";
 import { MakorLogo } from "@/components/ui/makor-logo";
+import { MarketSessionBar } from "./market-session-bar";
 
 import { formatLongDate, formatTimeOfDay } from "@/lib/utils/date";
 import { formatPrice, formatSymbol } from "@/lib/utils/format";
@@ -183,11 +184,6 @@ export function BriefingReader({ briefing }: BriefingReaderProps) {
           {/* INSTITUTIONAL PRINT SIGNOFF — visible only when printing/exporting */}
           <PrintSignoff briefing={briefing} />
 
-          {/* MARKET-SESSION TIMELINE — subtle terminal-style bottom bar
-              showing London / Paris / New York / Hong Kong / Singapore /
-              Istanbul / Moscow session state. Stays out of print export. */}
-          <MarketSessionBar />
-
           {/* FOOTER */}
           <div className="divider-h divider-strong" style={{ margin: "28px 0 12px" }} />
           <div
@@ -220,12 +216,17 @@ export function BriefingReader({ briefing }: BriefingReaderProps) {
             </span>
             <span>Distribution: {briefing.desk}</span>
           </div>
+
+          {/* LIVE MARKET-SESSION STATUS STRIP — Bloomberg-terminal-style
+              live footer. Tickers update every 30s client-side.
+              Hidden in print/export so the institutional PDF stays clean. */}
+          <MarketSessionBar />
         </div>
       </article>
 
       <aside className="col-span-3" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <TocRail />
-        {intel ? <StrategistViewRail view={intel.strategist_view} /> : null}
+        <ReadingGuideRail />
         <SourceHealthRail />
         <BriefingMetaRail briefing={briefing} />
       </aside>
@@ -645,6 +646,39 @@ function PositioningRows({ notes }: { notes: PositioningNote[] }) {
   );
 }
 
+/**
+ * Compact bank-by-bank summary — one tight row per bank with bias +
+ * next-meeting cue. Replaces the large CentralBankCardBlock grid for
+ * the default case where there's nothing scheduled today; collapses
+ * what had been a full-width 3-column card per bank into a 1-line
+ * register. The full card is still available for any future briefing
+ * that wants to surface a specific bank in detail. Stab-4.2 refinement.
+ */
+function CentralBankCompact({ banks }: { banks: CentralBankItem[] }) {
+  return (
+    <div className="cb-compact">
+      <span className="cb-compact-eyebrow">Bank-by-bank · next meetings + bias</span>
+      <ul className="cb-compact-list">
+        {banks.map((cb) => {
+          const next =
+            cb.days_to_next !== null && cb.days_to_next !== undefined
+              ? `${cb.days_to_next}d`
+              : "—";
+          return (
+            <li key={cb.bank} className="cb-compact-row">
+              <span className="cb-compact-bank">{cb.short}</span>
+              <span className="cb-compact-bias">{cb.bias}</span>
+              <span className="cb-compact-next">
+                {next} <span className="cb-compact-next-label">to next mtg</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function CentralBankCardBlock({ cb }: { cb: CentralBankItem }) {
   const shift = cb.hawkish_shift ?? null;
   const shiftLabel =
@@ -892,6 +926,102 @@ function ChartCard({ chart }: { chart: ChartT }) {
   );
 }
 
+/**
+ * Top movers — overnight gainers + losers derived from the briefing's
+ * chart baselines (each Chart carries previous_close as `baseline` and
+ * the intraday `series`; the last series point is "now"). Yields are
+ * read as rate deltas (basis points); FX / equity / commodities as %.
+ *
+ * No fabrication: only chart instruments that actually have both a
+ * baseline and a series populate the block. The current chart set
+ * surfaces ~3-6 instruments depending on Yahoo coverage; sufficient
+ * for a compact gainers/losers register without needing additional
+ * data fetches.
+ *
+ * Stab-4.2 refinement — institutional gainers/losers strip at the top
+ * of § 07 Overnight Movers.
+ */
+function TopMoversBlock({ intel }: { intel: Intelligence | null }) {
+  const charts = intel?.charts ?? [];
+  type Delta = {
+    instrument: string;
+    last: number;
+    baseline: number;
+    deltaAbs: number;
+    deltaPct: number;
+    direction: "pos" | "neg" | "neu";
+    isYield: boolean;
+  };
+  const deltas: Delta[] = [];
+  for (const c of charts) {
+    const series = c.series ?? [];
+    const last = series[series.length - 1];
+    const baseline = c.baseline ?? undefined;
+    if (typeof last !== "number" || typeof baseline !== "number" || baseline === 0) continue;
+    const isYield = /\b(US ?\d+Y|2Y|10Y|yield|gilt|bund|JGB)\b/i.test(c.title);
+    const deltaAbs = last - baseline;
+    const deltaPct = (deltaAbs / Math.abs(baseline)) * 100;
+    const sign = deltaAbs > 0 ? 1 : deltaAbs < 0 ? -1 : 0;
+    deltas.push({
+      instrument: c.title.replace(/ · Today.*$/, "").trim(),
+      last,
+      baseline,
+      deltaAbs,
+      deltaPct,
+      direction: sign > 0 ? "pos" : sign < 0 ? "neg" : "neu",
+      isYield,
+    });
+  }
+  if (deltas.length === 0) return null;
+  const sorted = [...deltas].sort((a, b) => b.deltaPct - a.deltaPct);
+  const top = sorted.slice(0, Math.min(3, sorted.length));
+  const bottom = [...sorted].reverse().slice(0, Math.min(3, sorted.length));
+  const noOverlap = sorted.length > 1;
+
+  const fmtDelta = (d: Delta): string => {
+    if (d.isYield) {
+      const bp = d.deltaAbs * 100;
+      return `${bp >= 0 ? "+" : "−"}${Math.abs(bp).toFixed(1)} bp`;
+    }
+    return `${d.deltaPct >= 0 ? "+" : "−"}${Math.abs(d.deltaPct).toFixed(2)}%`;
+  };
+  const fmtLast = (d: Delta): string => {
+    if (d.isYield) return `${d.last.toFixed(3)}%`;
+    return d.instrument.includes("/") ? d.last.toFixed(4) : d.last.toFixed(2);
+  };
+
+  return (
+    <div className="top-movers">
+      <div className="top-movers-col">
+        <span className="top-movers-col-eyebrow top-movers-col-eyebrow-gain">Top gainers · overnight</span>
+        <ul className="top-movers-list">
+          {top.map((d) => (
+            <li key={`gain-${d.instrument}`} className="top-movers-row">
+              <span className="top-movers-instrument">{d.instrument}</span>
+              <span className="top-movers-last">{fmtLast(d)}</span>
+              <span className={cn("top-movers-delta", d.direction === "pos" && "data-pos", d.direction === "neg" && "data-neg")}>{fmtDelta(d)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {noOverlap ? (
+        <div className="top-movers-col">
+          <span className="top-movers-col-eyebrow top-movers-col-eyebrow-loss">Top losers · overnight</span>
+          <ul className="top-movers-list">
+            {bottom.map((d) => (
+              <li key={`loss-${d.instrument}`} className="top-movers-row">
+                <span className="top-movers-instrument">{d.instrument}</span>
+                <span className="top-movers-last">{fmtLast(d)}</span>
+                <span className={cn("top-movers-delta", d.direction === "pos" && "data-pos", d.direction === "neg" && "data-neg")}>{fmtDelta(d)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ChartsBlock({ intel }: { intel: Intelligence | null }) {
   const charts = intel?.charts ?? [];
   if (charts.length === 0) return null;
@@ -920,15 +1050,21 @@ function OvernightMovers({ briefing, intel }: { briefing: BriefingRead; intel: I
     <>
       <ChartsBlock intel={intel} />
 
+      {/* Stab-4.2 — top gainers / losers compact block, derived from the
+          briefing's chart baselines (real overnight deltas, not fabricated).
+          Sits above the existing "What we watched" + asset-class table so
+          the desk has the headline movement at a glance. */}
+      <TopMoversBlock intel={intel} />
+
       <p
         className="body-sm"
         style={{ color: "var(--text-secondary)", marginBottom: 10, maxWidth: "var(--layout-research-max-w)" }}
       >
         <strong style={{ color: "var(--text-primary)" }}>What we watched:</strong>{" "}
-        a quiet overnight session. The cluster of moves was directionally
-        consistent — modest USD bid against the funders, front-end USD rates
-        firmer, commodities range-bound — but the magnitudes are not large.
-        Today's session reads on the CPI print.
+        overnight tape direction reads off the cluster below — gainers in the
+        risk-on column point to liquidity rebound; losers in the carry-funder
+        column point to positioning unwinds. The desk reads concentration of
+        moves into the European cash open for confirmation or fade.
       </p>
 
       <EmbeddedTable>
@@ -1093,11 +1229,8 @@ function MacroRegimeBlock({ briefing, intel }: { briefing: BriefingRead; intel: 
         </table>
       </EmbeddedTable>
 
-      <p className="editorial-body" style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-        Indicator readings price the current regime; the desk reads the cluster as
-        consistent with the soft-CPI base case, with the credit and equity-vol legs as
-        the principal contradiction signals to monitor pre-print.
-      </p>
+      <RegimeReadParagraph indicators={indicators} seed={seed} />
+
 
       {stat ? <PullStatBlock stat={stat} /> : null}
 
@@ -1110,6 +1243,112 @@ function MacroRegimeBlock({ briefing, intel }: { briefing: BriefingRead; intel: 
       {intel ? <StrategistInlineCallout view={intel.strategist_view} /> : null}
 
       {prov ? <ProvenanceFooter entry={prov} /> : null}
+    </div>
+  );
+}
+
+/**
+ * Maps the deterministic indicator set to one of the institutional
+ * regime labels the desk thinks in (higher-for-longer / soft-landing
+ * optimism / inflation persistence / growth slowdown / disinflation /
+ * liquidity-driven risk-on / stagflation pressure). The mapping is
+ * derived from the SAME seed as the indicator table so the regime
+ * label varies day-to-day in lockstep with the indicators — it never
+ * contradicts the table.
+ *
+ * Stab-4.2 — replaces the previous static "soft-CPI base case" line
+ * that read the same every day regardless of the seed.
+ */
+type RegimeIndicator = {
+  label: string;
+  direction: "pos" | "neg" | "neu";
+};
+
+interface RegimeRead {
+  label: string;
+  body: string;
+}
+
+function classifyRegime(indicators: RegimeIndicator[]): RegimeRead {
+  // Read direction of the principal legs: USD trend (pos = USD bid),
+  // real yields (pos = higher), credit (pos = wider = risk-off in our
+  // invertGood convention, but the synthetic table emits effectiveDir
+  // already inverted — so pos = wider credit = risk-off), equity vol
+  // (pos = higher VIX = risk-off via invertGood), gold (pos = real
+  // yields hurt gold less than expected). We read off the cluster.
+  const sign = (label: string): number => {
+    const ind = indicators.find((i) => i.label.toLowerCase().includes(label.toLowerCase()));
+    if (!ind) return 0;
+    return ind.direction === "pos" ? 1 : ind.direction === "neg" ? -1 : 0;
+  };
+  const usd = sign("USD");
+  const ry = sign("Real Yields");
+  const fxv = sign("FX Vol");
+  const cdx = sign("Credit");
+  const vix = sign("Equity Vol");
+  const brent = sign("OVX");
+  const gold = sign("Gold");
+
+  // Cluster scoring — light-touch rules. Multiple regimes can fit; the
+  // highest-scoring wins. Each regime has a description that names the
+  // mechanism + cross-asset readthrough.
+  const scores: Array<{ label: string; score: number; body: string }> = [
+    {
+      label: "Higher-for-longer repricing",
+      score: (usd > 0 ? 2 : 0) + (ry > 0 ? 2 : 0) + (cdx > 0 ? 1 : 0),
+      body:
+        "Markets are pricing a slower easing path: front-end USD bid against the funder bloc, real yields supporting USD strength, credit modestly wider as duration repricing weighs on growth-sensitive equities. The desk reads the cluster as consistent with a higher-for-longer drift; the principal contradiction signal is any softening in the labour-market or services-CPI legs.",
+    },
+    {
+      label: "Soft-landing optimism",
+      score: (usd <= 0 ? 1 : 0) + (cdx < 0 ? 2 : 0) + (vix < 0 ? 2 : 0),
+      body:
+        "Risk-on cluster — credit tighter, equity-vol bid drained, USD soft against the cyclical bloc. The desk reads this as soft-landing pricing: disinflation without a labour-market break. The principal contradiction signal would be a re-steepening of the curve or a fresh leg higher in oil that re-energises the inflation-persistence narrative.",
+    },
+    {
+      label: "Inflation persistence / repricing",
+      score: (ry > 0 ? 2 : 0) + (brent > 0 ? 2 : 0) + (usd > 0 ? 1 : 0),
+      body:
+        "Inflation-persistence cluster — real yields higher, Brent supply-premium widening, USD bid as the front-end leads the move. The desk watches the breakeven curve and the energy-bloc FX (CAD, NOK) for confirmation; the contradiction signal is any sharp services-CPI miss that would relieve the front-end repricing.",
+    },
+    {
+      label: "Growth slowdown / dovish repricing",
+      score: (usd < 0 ? 1 : 0) + (ry < 0 ? 2 : 0) + (cdx > 0 ? 1 : 0) + (vix > 0 ? 1 : 0),
+      body:
+        "Growth-slowdown cluster — real yields softer on dovish repricing, credit modestly wider as the cycle inflection signal builds, equity-vol creeping higher. The desk reads the curve bias as bull-steepening; commodity-bloc FX softening on softer global demand. The contradiction signal is any upside-surprise NFP or ISM that re-anchors the soft-landing path.",
+    },
+    {
+      label: "Liquidity-driven risk-on",
+      score: (cdx < 0 ? 2 : 0) + (fxv < 0 ? 1 : 0) + (vix < 0 ? 1 : 0) + (gold > 0 ? 1 : 0),
+      body:
+        "Liquidity rebound cluster — credit firmer, FX-vol drained, equity-vol soft, gold supported by softer real yields. The desk reads this as a positioning unwind rather than a fundamental shift; carry trades are most exposed if the regime breaks.",
+    },
+    {
+      label: "Stagflation pressure",
+      score: (brent > 0 ? 2 : 0) + (ry > 0 ? 1 : 0) + (vix > 0 ? 2 : 0) + (cdx > 0 ? 1 : 0),
+      body:
+        "Stagflation-pressure cluster — energy premium widening alongside higher real yields, equity-vol drifting up, credit wider. The desk reads this as the worst-case cross-asset overlay: rates and equities both under pressure, gold + JPY safe-haven bid. The contradiction signal is any de-escalation in the supply-premium leg.",
+    },
+  ];
+
+  const top = scores.reduce((best, cur) => (cur.score > best.score ? cur : best), scores[0]);
+  return { label: top.label, body: top.body };
+}
+
+function RegimeReadParagraph({
+  indicators,
+  seed,
+}: {
+  indicators: RegimeIndicator[];
+  seed: string;
+}) {
+  void seed;
+  const read = classifyRegime(indicators);
+  return (
+    <div className="regime-read">
+      <span className="regime-read-eyebrow">Regime read</span>
+      <span className="regime-read-label">{read.label}</span>
+      <p className="regime-read-body">{read.body}</p>
     </div>
   );
 }
@@ -1153,6 +1392,13 @@ function FxCommentaryBlock({ briefing, intel }: { briefing: BriefingRead; intel:
     <>
       <BodyParagraphs text={briefing.fx_commentary} />
 
+      {/* Stab-4.2 — compact major-pair table beneath the FX body so
+          the section reads as institutional FX-desk content (Bloomberg /
+          ForexLive register), not a single-pair commentary blurb. The
+          driver column carries a structural one-liner per pair so the
+          desk has the cross-asset read at a glance. */}
+      <FxMajorsTable briefing={briefing} />
+
       {intel && intel.pair_commentary.length > 0 ? (
         <div style={{ margin: "16px 0", padding: "8px 14px", border: "1px solid var(--border-subtle)", borderRadius: 3, background: "var(--surface-panel)" }}>
           <span className="eyebrow" style={{ color: "var(--text-eyebrow)", marginBottom: 8, display: "block" }}>
@@ -1168,6 +1414,67 @@ function FxCommentaryBlock({ briefing, intel }: { briefing: BriefingRead; intel:
       {prov ? <ProvenanceFooter entry={prov} /> : null}
     </>
   );
+}
+
+/**
+ * Compact majors table — Bloomberg-terminal-style register of the
+ * G10 FX pairs the desk reads most. Each row carries reference level,
+ * directional bias chip, and a structural driver one-liner. Values
+ * derive from the briefing's market snapshot (only EUR/USD + DXY have
+ * direct quotes today; other pairs surface with "—" until the
+ * instrument registry widens — never fabricated). The driver text is
+ * desk-authored per pair, never per-day variable.
+ */
+const FX_MAJORS: Array<{ pair: string; quoteKey?: keyof typeof FX_MAJORS_QUOTE_KEYS; driver: string }> = [
+  { pair: "EUR/USD", quoteKey: "EUR/USD", driver: "Bund-Treasury spread + front-end yield divergence." },
+  { pair: "GBP/USD", driver: "Gilt-Treasury spread + BoE vote-split signal." },
+  { pair: "USD/JPY", driver: "JGB yields + BoJ YCC + USD front-end; safe-haven flow on escalation." },
+  { pair: "USD/CHF", driver: "SNB FX-reserve posture + safe-haven flow on geopolitical risk." },
+  { pair: "AUD/USD", driver: "China-cycle + iron-ore + RBA path; risk-sentiment proxy." },
+  { pair: "USD/CAD", driver: "Brent + BoC path + US-Canada front-end spread." },
+  { pair: "USD/MXN", driver: "Carry + USTR tariff signal + US-Mexico growth gap." },
+  { pair: "USD/CNH", driver: "PBoC fix + tariff / chip-policy thread + capital-flow dynamics." },
+];
+const FX_MAJORS_QUOTE_KEYS = {
+  "EUR/USD": true,
+  "DXY": true,
+} as const;
+
+function FxMajorsTable({ briefing }: { briefing: BriefingRead }) {
+  const fx = briefing.market_snapshot?.fx ?? {};
+  return (
+    <EmbeddedTable>
+      <table className="data-table data-table-compact">
+        <thead>
+          <tr>
+            <th>Pair</th>
+            <th className="col-num">Reference</th>
+            <th>Driver / what the desk reads</th>
+          </tr>
+        </thead>
+        <tbody>
+          {FX_MAJORS.map((m) => {
+            const value = m.quoteKey ? fx[m.quoteKey] : undefined;
+            const ref = typeof value === "number" ? formatFxRef(m.pair, value) : "—";
+            return (
+              <tr key={m.pair}>
+                <td>{m.pair}</td>
+                <td className="col-num">{ref}</td>
+                <td className="caption" style={{ color: "var(--text-secondary)" }}>{m.driver}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </EmbeddedTable>
+  );
+}
+
+function formatFxRef(pair: string, value: number): string {
+  // EUR/USD style: 4dp; USD/JPY-style: 2dp; DXY: 2dp.
+  if (/\//.test(pair) && !pair.endsWith("/JPY")) return value.toFixed(4);
+  if (pair.endsWith("/JPY")) return value.toFixed(2);
+  return value.toFixed(2);
 }
 
 // =================================================================== § 04 VOLATILITY
@@ -1264,7 +1571,7 @@ function EconomicCalendarBlock({ briefing, intel }: { briefing: BriefingRead; in
   // The full data table below still renders only `events` so the
   // comprehensive economic-release reference remains intact.
   const catalysts = buildCatalysts(briefing, intel);
-  const priorityEvents = priorityEventsFrom(catalysts, 8);
+  const priorityEvents = priorityEventsFrom(catalysts, 12);
 
   return (
     <>
@@ -1360,12 +1667,19 @@ function eventScore(e: KeyEvent): number {
 }
 
 function priorityEventsFrom(events: KeyEvent[], limit = 5): KeyEvent[] {
+  // Stab-4.2 — institutional morning briefs run dense, not sparse. The
+  // priority register should carry the day's catalyst surface even when
+  // not every item is "desk_critical": medium-importance scheduled
+  // releases, mid-tier leader speeches, and tier-2 geopol items all
+  // belong here. Lower the threshold so the block is consistently
+  // populated and let the badge / P-tag hierarchy do the prioritisation
+  // work visually. If the threshold gates the list to zero, fall back
+  // to the top-N-by-score so the block is never empty.
   const scored = events
     .map((e) => ({ e, s: eventScore(e) }))
-    .filter((x) => x.s >= 22) // sensitivity ≥ medium (3) AND importance ≥ medium → 3×10+2 = 32; or high event
+    .filter((x) => x.s >= 12)
     .sort((a, b) => b.s - a.s);
-  // If nothing meets the high bar, fall back to top-N by score.
-  if (scored.length === 0) {
+  if (scored.length < 4) {
     return events.map((e) => ({ e, s: eventScore(e) }))
       .sort((a, b) => b.s - a.s)
       .slice(0, limit)
@@ -1811,9 +2125,70 @@ function formatCBEventTime(iso: string): string {
   return `${day}/${mon} ${hh}:${mm}`;
 }
 
+/**
+ * Per-(bank, kind) institutional read — short, desk-style explanation
+ * of why each event matters for FX / rates. Surfaces beneath the
+ * upstream RSS title so each entry carries an explanatory sentence,
+ * not just the raw headline. Stab-4.2 refinement.
+ */
+const CB_KIND_FRAMES: Record<string, Partial<Record<string, string>>> = {
+  Fed: {
+    "statement":   "Dot-plot drift + forward-guidance language are the cross-asset triggers; front-end Treasury yields and USD propagate first.",
+    "minutes":     "Reaction-function nuance is the read — wage-and-services framing matters more than the headline rate path.",
+    "press-conf":  "Q&A language is the live signal; vol-of-vol around Powell's framing repeatedly outweighs the statement itself.",
+    "testimony":   "Hill testimony tests the data-dependence line; surprise hawkishness lifts the front-end USD complex.",
+    "speech":      "Watch for vote-split signalling and any departure from the most recent SEP framing.",
+    "release":     "Routine data publication; structural read only — surfaces in the context backdrop, not as a live catalyst.",
+  },
+  ECB: {
+    "statement":   "Vote distribution + services-inflation framing carries more cross-asset signal than the rate level; the bund-Treasury spread is the cleanest read.",
+    "minutes":     "Account of the meeting probes the consensus path on services CPI and wage growth — bund moves first, EUR/USD follows.",
+    "press-conf":  "Lagarde's framing on data-dependence is the variable; explicit forward guidance shifts EUR/USD on impact.",
+    "speech":      "Hawk / dove side-bet — Holzmann / Schnabel / Lane positions condition the GC reaction function.",
+    "testimony":   "ECON / Bundestag appearances are the formal venue for guidance shifts; gilt + bund spreads watch.",
+    "release":     "Routine release; conditioning input rather than catalyst.",
+  },
+  BoE: {
+    "statement":   "Vote-split is the live signal — services inflation read conditions the policy path; gilts + GBP lead.",
+    "minutes":     "MPC minutes test the dovish / hawkish dispersion; GBP crosses move on any new conditioning language.",
+    "press-conf":  "Bailey's framing on services pricing pass-through is the structural variable.",
+    "speech":      "Pill / Mann / Dhingra positions are the dispersion signal — flag any shift in the vote balance.",
+    "testimony":   "Treasury Select Committee testimony surfaces the data-dependence line in plain language.",
+    "release":     "Routine release; conditioning input only.",
+  },
+  BoJ: {
+    "statement":   "YCC framework language + wage-cycle commentary drive USD/JPY level; JGB curve carries the spillover.",
+    "minutes":     "Summary of opinions tests the normalisation pace; USD/JPY direction follows JGB curve.",
+    "press-conf":  "Ueda press-conference reaction-function language is the binary; FX vol typically resets within the session.",
+    "speech":      "Watch for any departure from the patient-normalisation frame; wage cycle is the conditioning factor.",
+    "testimony":   "Diet appearances test the FX-volatility commentary; intervention thresholds visible only ex-post.",
+    "release":     "Routine release; structural backdrop.",
+  },
+  SNB: {
+    "statement":   "Monetary-policy assessment frames CHF tolerance + intervention posture; EUR/CHF and CHF cross-vol respond.",
+    "minutes":     "Account of the assessment — SNB rarely surprises; CHF moves on tolerance shifts not rate decisions.",
+    "press-conf":  "Jordan / Schlegel commentary on the CHF level is the live FX-intervention read.",
+    "speech":      "Watch for any framing change on imported euro-area inflation or FX-reserve flow.",
+    "testimony":   "Parliamentary appearances cover FX-reserve composition + rate path conditioning.",
+    "release":     "Routine release; structural backdrop.",
+  },
+};
+
+function cbInstitutionalRead(bank: string, kind: string): string | null {
+  const byBank = CB_KIND_FRAMES[bank];
+  if (!byBank) return null;
+  return byBank[kind] ?? null;
+}
+
 function CBEventRow({ e }: { e: CBEvent }) {
   const kindLabel = CB_KIND_LABEL[e.kind] ?? "Release";
   const kindCls = CB_KIND_BADGE_CLASS[e.kind] ?? "category-cat-growth";
+  // Stab-4.2 — every CB row now carries an institutional read derived
+  // from (bank, kind). The per-bank market_impact still surfaces on the
+  // high-signal kinds (statement / minutes / press-conf / testimony) as
+  // a longer structural frame; the kind-frame is the tighter "why this
+  // matters today" sentence.
+  const kindRead = cbInstitutionalRead(e.bank, e.kind);
   const showImpact =
     !!e.market_impact &&
     (e.kind === "statement" || e.kind === "minutes" || e.kind === "press-conf" || e.kind === "testimony");
@@ -1834,9 +2209,8 @@ function CBEventRow({ e }: { e: CBEvent }) {
           e.title
         )}
       </div>
-      {showImpact ? (
-        <div className="cb-event-impact">{e.market_impact}</div>
-      ) : null}
+      {kindRead ? <div className="cb-event-read">{kindRead}</div> : null}
+      {showImpact ? <div className="cb-event-impact">{e.market_impact}</div> : null}
     </div>
   );
 }
@@ -1845,7 +2219,7 @@ function CBEventsBlock({ events }: { events: CBEvent[] | undefined }) {
   if (!events || events.length === 0) return null;
   return (
     <div className="cb-events-block">
-      <div className="cb-events-eyebrow">Recent Activity · Last 14 Days</div>
+      <div className="cb-events-eyebrow">Overnight &amp; Recent Activity</div>
       <div className="cb-events-list">
         {events.map((e) => <CBEventRow key={e.id} e={e} />)}
       </div>
@@ -1865,12 +2239,7 @@ function CentralBankBlock({ briefing, intel }: { briefing: BriefingRead; intel: 
       <CBEventsBlock events={recentCBActivity} />
 
       {intel && intel.central_banks.length > 0 ? (
-        <div style={{ marginTop: 16, padding: "8px 14px", border: "1px solid var(--border-subtle)", borderRadius: 3, background: "var(--surface-panel)" }}>
-          <span className="eyebrow" style={{ color: "var(--text-eyebrow)", marginBottom: 4, display: "block" }}>
-            Bank-by-bank watch
-          </span>
-          {intel.central_banks.map((cb) => <CentralBankCardBlock key={cb.bank} cb={cb} />)}
-        </div>
+        <CentralBankCompact banks={intel.central_banks} />
       ) : cbEvents.length > 0 ? (
         <EmbeddedTable>
           <table className="data-table data-table-compact">
@@ -2642,99 +3011,60 @@ function TocRail() {
   );
 }
 
+// MarketSessionBar moved to its own client component file
+// (./market-session-bar.tsx) so the clocks tick live via useEffect +
+// setInterval. The server-rendered placeholder hydrates seamlessly
+// once mounted; print/export hide it via .no-print.
+
 /**
- * Subtle institutional market-session bar rendered at the bottom of the
- * briefing — terminal-style, restrained, source-of-truth via the
- * client clock. Renders open / pre-open / closed state for the seven
- * sessions the desk tracks (London, Paris, New York, Hong Kong,
- * Singapore, Istanbul, Moscow). Hidden in print/export so the
- * institutional PDF stays clean.
- *
- * Computed entirely in the browser from UTC — no upstream dependency.
- * Sessions are pre-LSE-open (07:00 LDN), LSE cash hours (08:00-16:30
- * LDN), NYSE cash hours (09:30-16:00 NYC), etc. Approximations are
- * acceptable here; the bar is a desk-time orientation aid, not a
- * trading reference.
+ * Reading Guide rail — replaces the previous StrategistViewRail which
+ * read as low-value generic intro text. The reading guide briefly
+ * describes how the briefing is structured and where the trader's
+ * attention should land, with a one-line gloss per section. Kept
+ * tight — the rail is a sidebar, not a content surface. The LLM
+ * strategist commentary still surfaces inline in § 01 Macro Regime
+ * via StrategistInlineCallout, so no LLM output is lost. Stab-4.2.
  */
-function MarketSessionBar() {
-  const sessions = computeMarketSessions(new Date());
+function ReadingGuideRail() {
   return (
-    <div className="market-session-bar no-print" role="presentation" aria-label="Market sessions">
-      {sessions.map((s) => (
-        <div key={s.code} className={cn("market-session", `market-session-${s.state}`)}>
-          <span className="market-session-code">{s.code}</span>
-          <span className="market-session-city">{s.city}</span>
-          <span className="market-session-time">{s.local}</span>
-          <span className={cn("market-session-state", `market-session-state-${s.state}`)}>
-            {s.label}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-interface MarketSession {
-  code: string;
-  city: string;
-  /** Tz offset hours from UTC. DST handled coarsely — desk-time orientation, not trading. */
-  offset: number;
-  /** Local open hour. */
-  open: number;
-  /** Local close hour. */
-  close: number;
-}
-
-const MARKET_SESSIONS: MarketSession[] = [
-  { code: "LDN", city: "London",    offset: 0,  open: 8,    close: 16.5 },
-  { code: "PAR", city: "Paris",     offset: 1,  open: 9,    close: 17.5 },
-  { code: "NYC", city: "New York",  offset: -5, open: 9.5,  close: 16 },
-  { code: "HKG", city: "Hong Kong", offset: 8,  open: 9.5,  close: 16 },
-  { code: "SIN", city: "Singapore", offset: 8,  open: 9,    close: 17 },
-  { code: "IST", city: "Istanbul",  offset: 3,  open: 9.5,  close: 18 },
-  { code: "MOW", city: "Moscow",    offset: 3,  open: 10,   close: 18.45 },
-];
-
-function computeMarketSessions(now: Date) {
-  const utcH = now.getUTCHours() + now.getUTCMinutes() / 60;
-  return MARKET_SESSIONS.map((m) => {
-    let localH = (utcH + m.offset) % 24;
-    if (localH < 0) localH += 24;
-    const hh = Math.floor(localH);
-    const mm = Math.floor((localH - hh) * 60);
-    const local = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-    let state: "open" | "pre" | "closed";
-    let label: string;
-    if (localH >= m.open && localH < m.close) {
-      state = "open";
-      label = "open";
-    } else if (localH >= m.open - 1 && localH < m.open) {
-      state = "pre";
-      label = "pre-open";
-    } else {
-      state = "closed";
-      label = "closed";
-    }
-    return { code: m.code, city: m.city, local, state, label };
-  });
-}
-
-function StrategistViewRail({ view }: { view: StrategistViewT }) {
-  return (
-    <div className="panel">
+    <div className="panel reading-guide">
       <div className="panel-header">
         <div className="panel-header-title">
-          <span className="eyebrow">Desk View</span>
-          <span className="heading-4">Strategist</span>
+          <span className="eyebrow">How to read</span>
+          <span className="heading-4">Briefing Guide</span>
         </div>
       </div>
       <div className="panel-body panel-body-prem">
-        <div className="editorial-strategist-headline" style={{ fontSize: 15, lineHeight: "21px" }}>
-          {view.headline}
-        </div>
-        <p className="editorial-strategist-body" style={{ marginTop: 8, fontSize: 13, lineHeight: "20px" }}>
-          {view.body}
-        </p>
+        <ul className="reading-guide-list">
+          <li>
+            <span className="reading-guide-tag">Lead</span>
+            <span>Executive Summary &amp; Key Takeaways frame the overnight regime + day's swing variables.</span>
+          </li>
+          <li>
+            <span className="reading-guide-tag">§ 01-02</span>
+            <span>Macro Regime + Geopolitical Pulse — the institutional centre of gravity. Read first.</span>
+          </li>
+          <li>
+            <span className="reading-guide-tag">§ 03</span>
+            <span>Today's Catalysts unifies calendar + geopolitical + CB events into one chronologically-sessioned register.</span>
+          </li>
+          <li>
+            <span className="reading-guide-tag">§ 04</span>
+            <span>Central Bank Watch: overnight + recent rhetoric only — each entry carries a desk read on cross-asset implications.</span>
+          </li>
+          <li>
+            <span className="reading-guide-tag">§ 05-07</span>
+            <span>Asset-class commentary (FX / Vol / Movers) — what moved, why, what the desk watches next.</span>
+          </li>
+          <li>
+            <span className="reading-guide-tag">§ 09</span>
+            <span>Key Risks — institutional desk register: each risk names its cross-asset readthrough and escalation triggers.</span>
+          </li>
+          <li>
+            <span className="reading-guide-tag">Sources</span>
+            <span>Per-section provenance lives inline; the full feed registry is at <a href="/sources">/sources</a>.</span>
+          </li>
+        </ul>
       </div>
     </div>
   );
